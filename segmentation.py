@@ -75,6 +75,7 @@ def cluster_image_colors(img_rgb, nr_clusters):
     return labels, cluster_colors
 
 
+# Arke: Just a comment, purely image process
 def gaussian_mixture_cluster(x, nr_clusters, b_print=False, print_all_values=False):
     x = np.array(x)
     
@@ -144,16 +145,17 @@ def is_gray(color_rgb, diff_range=100):
     gray_percentage = (1 - (max_diff / diff_range)) * 100
     return 0 if gray_percentage < 0 else gray_percentage
 
+# Comparison between min-max approach and standard deviation
+# colorspace = np.array([[r, g, b] for r in range(256) for b in range(256) for g in range(256)])
+# grayspace = (1 - np.max(np.hstack((np.abs(colorspace[:, 1] - colorspace[:, 0])[:, np.newaxis],
+#                                    np.abs(colorspace[:, 2] - colorspace[:, 1])[:, np.newaxis],
+#                                    np.abs(colorspace[:, 0] - colorspace[:, 2])[:, np.newaxis])), axis=1) / 255) * 100
+# grayspace[grayspace < 0] = 0
+# max_std = 120.20815280171308
+# grayspace_alt = (100 - np.std(colorspace, axis=1) / max_std * 100)
+# print("Maximum difference: " + str(np.max(grayspace_alt - grayspace)) + ". Minimum difference: " +
+#       str(np.min(grayspace_alt - grayspace)))
 
-colorspace = np.array([[r, g, b] for r in range(256) for b in range(256) for g in range(256)])
-grayspace = (1 - np.max(np.hstack((np.abs(colorspace[:, 1] - colorspace[:, 0])[:, np.newaxis],
-                                   np.abs(colorspace[:, 2] - colorspace[:, 1])[:, np.newaxis],
-                                   np.abs(colorspace[:, 0] - colorspace[:, 2])[:, np.newaxis])), axis=1) / 255) * 100
-grayspace[grayspace < 0] = 0
-max_std = 120.20815280171308
-grayspace_alt = (100 - np.std(colorspace, axis=1) / max_std * 100)
-print("Maximum difference: " + str(np.max(grayspace_alt - grayspace)) + ". Minimum difference: " +
-      str(np.min(grayspace_alt - grayspace))
 
 # returns array r, g, b of 0-100 percentage
 # based on the r, g, b with the highest values and their diff to lower values
