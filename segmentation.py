@@ -50,8 +50,9 @@ def show_color_evaluation(name):
                                                                           round(evaluation['road']),
                                                                           round(evaluation['building']))
         
-        color_swatch_img = [[color, color, color, color, color, color]]
+        color_swatch_img = [[color]*6]
         
+        # TODO subplots
         plt.figure(figsize=(8, 8))
         plot_images([color_swatch_img], 1, 1, title=title_rgb + title_colors + title_labels)
     
