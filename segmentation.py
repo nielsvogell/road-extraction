@@ -155,6 +155,10 @@ def gaussian_mixture_cluster(colors, nr_clusters, b_print=False, print_all_value
 #     #  - rural_blue (for lakes and possibly ocean)
 #     #  - rural_sand (for deserts or barren lands)
 
+# def classify_image(img_rgb):
+#     # compare histogram to prototypical histrogram of each existing model and return best fit model name
+#     model_name = None
+#     return model_name
 
 # returns building/background/road based on color assignment with "percent_gray_red_green_blue"
 def evaluate_color(color_rgb):
