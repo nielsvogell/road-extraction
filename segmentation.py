@@ -266,5 +266,7 @@ def is_red_green_blue(color_rgb, d=0):
 # t_end = time.time()
 # print(t_end - t_start)
 
-img_name = "exp.png"
-show_color_evaluation(img_name)
+
+def test():
+    img_name = "exp.png"
+    show_color_evaluation(img_name)
