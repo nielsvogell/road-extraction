@@ -46,8 +46,8 @@ def show_color_evaluation(img_rgb, resize=0.3, blur_size=5):
         color_swatch_img = [[color] * 6]
 
         # TODO subplots
-        #plt.figure(figsize=(8, 8))
-        #plot_images([color_swatch_img], 1, 1, title=title_rgb + title_colors + title_labels)
+        # plt.figure(figsize=(8, 8))
+        # plot_images([color_swatch_img], 1, 1, title=title_rgb + title_colors + title_labels)
 
     (h, w, d) = img_rgb.shape
     label_img = labels.reshape(h, w)
@@ -84,7 +84,7 @@ def segment(img_rgb, scale=0.5):
 
 # Arke: Just a comment, this takes a lot of time. It might be a great method, but finding a faster one is desirable.
 def gaussian_mixture_cluster(img_rgb, img_rgb_resized=None, nr_clusters=6, b_print=False):
-    if img_rgb_resized:
+    if img_rgb_resized is not None:
         colors_train = img_rgb_resized.reshape((-1, 3))
     else:
         colors_train = img_rgb.reshape((-1, 3))
