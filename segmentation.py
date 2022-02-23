@@ -15,13 +15,15 @@ def main():
     # 0.25 ->  2s
     # 0.5  -> 12s
     # 1    -> 56s
-    show_color_evaluation("klagenfurt1.png", 0.4)
+    show_color_evaluation("klagenfurt1.png", 0.3, 7)
     plt.show()
 
 
-def show_color_evaluation(name, resize):
+def show_color_evaluation(name, resize=0.3, blur_size=5):
     img = cv2.imread("data/" + name)
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    if blur_size > 0:
+        img_rgb = cv2.medianBlur(img_rgb, blur_size)
 
     # Resize image -> faster clustering
     height, width = img.shape[:2]
