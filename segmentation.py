@@ -15,16 +15,16 @@ def main():
     # 0.25 ->  2s
     # 0.5  -> 12s
     # 1    -> 56s
-    show_color_evaluation("exp.png", 0.25)
+    name = "exp.png"
+    img_rgb = cv2.cvtColor(cv2.imread("data/" + name), cv2.COLOR_BGR2RGB)
+    show_color_evaluation(img_rgb, 0.25)
     plt.show()
 
 
-def show_color_evaluation(name, resize):
-    img = cv2.imread("data/" + name)
-    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+def show_color_evaluation(img_rgb, resize):
 
     # Resize image -> faster clustering
-    height, width = img.shape[:2]
+    height, width = img_rgb.shape[:2]
     new_dim = (int(width * resize), int(height * resize))
     colors = cv2.resize(img_rgb, new_dim, interpolation=cv2.INTER_AREA).reshape((-1, 3))
 
@@ -75,6 +75,7 @@ def segment(img_rgb, scale=0.5):
             final_label['road'] = lbl
         # TODO: other labels
 
+    # TODO: (optional) change label_img to only include (preliminary) labels for road, building and background
     (h, w, d) = img_rgb.shape
     label_img = labels.reshape(h, w)
     return label_img, final_label
