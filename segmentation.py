@@ -4,84 +4,70 @@ import numpy as np
 from sklearn.mixture import GaussianMixture
 import pickle as pcl
 # import copy  # previously used -> tbd
-# import time  # only used for profiling
+import time  # only used for profiling
 from matplotlib import use as mpl_use
-mpl_use('TkAgg')
 from matplotlib import pyplot as plt
 
-
-def plot_images(images, r, c, cmap=None, title=None):
-    if title:
-        plt.title(title)
-    for index, image in enumerate(images):
-        plt.subplot(r, c, index + 1)
-        plt.axis('off')
-        plt.imshow(image, cmap=cmap)
-        # plt.tight_layout()
-    plt.tight_layout()
+mpl_use('TkAgg')
 
 
-def HSV2RGB(img_hsv):
-    return cv2.cvtColor(img_hsv, cv2.COLOR_HSV2RGB)
+def main():
+    # 0.25 ->  2s
+    # 0.5  -> 12s
+    # 1    -> 56s
+    show_color_evaluation("paper_exp.png", 0.35)
+    plt.show()
 
 
-def BGR2RGB(img_bgr):
-    return cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-
-
-def show_color_evaluation(name):
+def show_color_evaluation(name, resize):
     img = cv2.imread("data/" + name)
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    
+
+    # Resize image -> faster clustering
+    height, width = img.shape[:2]
+    new_dim = (int(width * resize), int(height * resize))
+    img_rgb = cv2.resize(img_rgb, new_dim, interpolation=cv2.INTER_AREA)
+
     # Cluster
-    labels, cluster_colors = cluster_image_colors(img_rgb, nr_clusters=5)
+    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, nr_clusters=6)
 
     for color in cluster_colors.values():
         # Evaluate Color
         evaluation, gray, red, green, blue = evaluate_color(color)
-        
+
         title_rgb = "rgb color: {}\n".format(color)
         title_colors = "gray: {}%, red: {}%, green: {}%, blue: {}%\n".format(round(gray), round(red), round(green),
                                                                              round(blue))
         title_labels = "background: {}%, road: {}%, building: {}%".format(round(evaluation['background']),
                                                                           round(evaluation['road']),
                                                                           round(evaluation['building']))
-        
-        color_swatch_img = [[color]*6]
-        
+
+        color_swatch_img = [[color] * 6]
+
         # TODO subplots
         plt.figure(figsize=(8, 8))
         plot_images([color_swatch_img], 1, 1, title=title_rgb + title_colors + title_labels)
-    
-    # copy img and change value of each pixel to the median value of its cluster
-    # img_gm = copy.deepcopy(img_rgb)
-    # index = 0
-    # for x in range(len(img_gm)):
-    #     for y in range(len(img_gm[x])):
-    #         img_gm[x, y] = cluster_colors[labels[index]]
-    #         index += 1
 
-    # Arke: suggested optimization (removes the 1000 x 1000 loop and only iterates through the clusters)
     (h, w, d) = img_rgb.shape
     label_img = labels.reshape(h, w)
     img_gm = np.zeros_like(img_rgb)
     for lbl, color in cluster_colors.items():
         img_gm[np.where(label_img == lbl)] = color
-    
+
     plt.figure(figsize=(15, 15))
     plot_images([img_gm], 1, 1)
 
 
 def segment(img_rgb):
     # TODO: segment based on specified model
-    labels, cluster_colors = cluster_image_colors(img_rgb, nr_clusters=5)
-    
+    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, nr_clusters=5)
+
     max_probs = {'road': 0, 'building': 0, 'background': 0}
     final_label = {'road': -1, 'building': -1, 'background': -1}
     for lbl, color in cluster_colors.items():
         # Evaluate Color
         evaluation, gray, red, green, blue = evaluate_color(color)
-        
+
         if evaluation['road'] > max_probs['road']:
             max_probs['road'] = evaluation['road']
             final_label['road'] = lbl
@@ -92,54 +78,35 @@ def segment(img_rgb):
     return label_img, final_label
 
 
-# Arke: Optimized by reshaping
-def cluster_image_colors(img_rgb, nr_clusters):
-    all_colors = img_rgb.reshape((-1, 3))
-    labels, cluster_colors = gaussian_mixture_cluster(all_colors, nr_clusters)
-    return labels, cluster_colors
-
-
 # Arke: Just a comment, this takes a lot of time. It might be a great method, but finding a faster one is desirable.
-def gaussian_mixture_cluster(colors, nr_clusters, b_print=False, print_all_values=False):
+def gaussian_mixture_cluster(img_rgb, nr_clusters, b_print=False):
+
+    colors = img_rgb.reshape((-1, 3))
     colors = np.array(colors)
-    
+
+    # how much time does it take
+    start = time.time()
+
     # Cluster with Gaussian Mixture
     gm = GaussianMixture(n_components=nr_clusters, random_state=0).fit(colors)
     labels = gm.predict(colors)
-    
+
+    gm_time = time.time() - start
+    print("Gaussian Mixture took {}s".format(gm_time))
+
     unique_labels = np.unique(labels)
-    n_clusters_ = len(unique_labels)
-    
-    # Calculate Median Value for each Cluster
-    cluster_colors = {}
-    
+
     if b_print:
-        print("There are {} clusters!".format(n_clusters_))
-    
+        print("There are {} clusters!".format(len(unique_labels)))
+
+    cluster_colors = {}
     for k in unique_labels:
         b_labeled_k = labels == k
-        if b_print:
-            print("Label: {}".format(k))
-        
-        # cluster_median_value = [0] * (len(x[0]))
-        # nr_points = 0
-        #
-        # for index, in_cluster in enumerate(b_labeled_k):
-        #     if in_cluster:
-        #         if print_all_values:
-        #             print("\t{}".format(x[index]))
-        #         nr_points += 1
-        #         cluster_median_value = [x + y for x, y in zip(x[index], cluster_median_value)]
-        #
-        # nr_points = np.count_nonzero(b_labeled_k)  # Gets the number of points faster
-        # cluster_colors[k] = [round(x / nr_points) for x in cluster_median_value]
-        # # I think you are calculating the mean
-        #
-        # Arke: Suggest to optimize by directly calculating the median from the set of colors labeled k
         cluster_colors[k] = np.median(colors[b_labeled_k], axis=0).astype(np.uint8)
+
         if b_print:
-            print("Color: {}\n".format(cluster_colors[k]))
-    
+            print("Label: {} with Color: {}\n".format(k, cluster_colors[k]))
+
     return labels, cluster_colors
 
 
@@ -167,20 +134,20 @@ def evaluate_color(color_rgb):
     # Probably not faster and not necessarily more readable
     # is_gray = lambda c: (1 - max([abs(c[1] - c[0]), abs(c[2] - c[1]), abs(c[0] - c[2])]) / 255) * 100
     # TODO: Vectorize (low priority)
-    
+
     gray = is_gray(color_rgb, min(color_rgb) / 2)  # Why the min_color/2?
     red, green, blue = is_red_green_blue(color_rgb)
-    
+
     # gray -> road or building
     # green and red similar -> background
-    
+
     background = (1 - (abs(red - green) / (red + green))) * 100
     not_background = (100 - background)
-    
+
     not_gray = (100 - gray) / 100
-    
+
     map_type = {'background': background * not_gray, 'road': gray / 2, 'building': not_background * not_gray + gray / 2}
-    
+
     return map_type, gray, red, green, blue
 
 
@@ -196,6 +163,7 @@ def is_gray(color_rgb, diff_range=100):
     max_diff = max(diffs)
     gray_percentage = (1 - (max_diff / diff_range)) * 100
     return 0 if gray_percentage < 0 else gray_percentage
+
 
 # Arke:
 # Comparison between min-max approach and standard deviation
@@ -248,6 +216,7 @@ def is_red_green_blue(color_rgb, d=0):
     # return np.divide(tmp2, (c_sum - c_sub)) * 100
     return [r, g, b]
 
+
 # Arke: Discussing vectorization
 # It would be significantly faster to simultaneously evaluate all colors. However, with only a handful of clusters,
 # the gain is not that big.
@@ -270,7 +239,28 @@ def is_red_green_blue(color_rgb, d=0):
 # t_end = time.time()
 # print(t_end - t_start)
 
+# def test():
+#     img_name = "exp.png"
+#     show_color_evaluation(img_name)
 
-def test():
-    img_name = "exp.png"
-    show_color_evaluation(img_name)
+def plot_images(images, r, c, cmap=None, title=None):
+    if title:
+        plt.title(title)
+    for index, image in enumerate(images):
+        plt.subplot(r, c, index + 1)
+        plt.axis('off')
+        plt.imshow(image, cmap=cmap)
+        # plt.tight_layout()
+    plt.tight_layout()
+
+
+def HSV2RGB(img_hsv):
+    return cv2.cvtColor(img_hsv, cv2.COLOR_HSV2RGB)
+
+
+def BGR2RGB(img_bgr):
+    return cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
+
+if __name__ == "__main__":
+    main()
