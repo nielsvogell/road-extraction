@@ -15,7 +15,7 @@ def main():
     # 0.25 ->  2s
     # 0.5  -> 12s
     # 1    -> 56s
-    show_color_evaluation("paper_exp.png", 0.35)
+    show_color_evaluation("klagenfurt1.png", 0.4)
     plt.show()
 
 
@@ -26,10 +26,10 @@ def show_color_evaluation(name, resize):
     # Resize image -> faster clustering
     height, width = img.shape[:2]
     new_dim = (int(width * resize), int(height * resize))
-    img_rgb = cv2.resize(img_rgb, new_dim, interpolation=cv2.INTER_AREA)
+    resized_img_rgb = cv2.resize(img_rgb, new_dim, interpolation=cv2.INTER_AREA)
 
     # Cluster
-    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, nr_clusters=6)
+    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, resized_img_rgb, nr_clusters=5)
 
     for color in cluster_colors.values():
         # Evaluate Color
@@ -45,8 +45,8 @@ def show_color_evaluation(name, resize):
         color_swatch_img = [[color] * 6]
 
         # TODO subplots
-        plt.figure(figsize=(8, 8))
-        plot_images([color_swatch_img], 1, 1, title=title_rgb + title_colors + title_labels)
+        #plt.figure(figsize=(8, 8))
+        #plot_images([color_swatch_img], 1, 1, title=title_rgb + title_colors + title_labels)
 
     (h, w, d) = img_rgb.shape
     label_img = labels.reshape(h, w)
@@ -79,16 +79,19 @@ def segment(img_rgb):
 
 
 # Arke: Just a comment, this takes a lot of time. It might be a great method, but finding a faster one is desirable.
-def gaussian_mixture_cluster(img_rgb, nr_clusters, b_print=False):
+def gaussian_mixture_cluster(img_rgb, resized_img_rgb, nr_clusters, b_print=False):
 
     colors = img_rgb.reshape((-1, 3))
     colors = np.array(colors)
+
+    resized_colors = resized_img_rgb.reshape((-1, 3))
+    resized_colors = np.array(resized_colors)
 
     # how much time does it take
     start = time.time()
 
     # Cluster with Gaussian Mixture
-    gm = GaussianMixture(n_components=nr_clusters, random_state=0).fit(colors)
+    gm = GaussianMixture(n_components=nr_clusters, random_state=0).fit(resized_colors)
     labels = gm.predict(colors)
 
     gm_time = time.time() - start
