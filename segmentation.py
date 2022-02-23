@@ -15,7 +15,7 @@ def main():
     # 0.25 ->  2s
     # 0.5  -> 12s
     # 1    -> 56s
-    show_color_evaluation("paper_exp.png", 0.35)
+    show_color_evaluation("exp.png", 0.25)
     plt.show()
 
 
@@ -26,10 +26,10 @@ def show_color_evaluation(name, resize):
     # Resize image -> faster clustering
     height, width = img.shape[:2]
     new_dim = (int(width * resize), int(height * resize))
-    img_rgb = cv2.resize(img_rgb, new_dim, interpolation=cv2.INTER_AREA)
+    colors = cv2.resize(img_rgb, new_dim, interpolation=cv2.INTER_AREA).reshape((-1, 3))
 
     # Cluster
-    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, nr_clusters=6)
+    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, nr_clusters=6, colors=colors)
 
     for color in cluster_colors.values():
         # Evaluate Color
@@ -58,9 +58,11 @@ def show_color_evaluation(name, resize):
     plot_images([img_gm], 1, 1)
 
 
-def segment(img_rgb):
+def segment(img_rgb, scale=0.5):
     # TODO: segment based on specified model
-    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, nr_clusters=5)
+    new_dim = tuple([int(img_rgb.shape[i] * scale) for i in range(2)])
+    colors = cv2.resize(img_rgb, new_dim, interpolation=cv2.INTER_AREA).reshape((-1, 3))
+    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, nr_clusters=5, colors=colors)
 
     max_probs = {'road': 0, 'building': 0, 'background': 0}
     final_label = {'road': -1, 'building': -1, 'background': -1}
@@ -79,10 +81,10 @@ def segment(img_rgb):
 
 
 # Arke: Just a comment, this takes a lot of time. It might be a great method, but finding a faster one is desirable.
-def gaussian_mixture_cluster(img_rgb, nr_clusters, b_print=False):
-
-    colors = img_rgb.reshape((-1, 3))
-    colors = np.array(colors)
+def gaussian_mixture_cluster(img_rgb, nr_clusters, b_print=False, colors=None):
+    if not colors:
+        colors = img_rgb.reshape((-1, 3))
+        colors = np.array(colors)
 
     # how much time does it take
     start = time.time()
