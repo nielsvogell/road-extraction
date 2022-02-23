@@ -20,7 +20,7 @@ def main():
     plt.show()
 
 
-def show_color_evaluation(img_rgb, resize=0.3, blur_size=5):
+def show_color_evaluation(img_rgb, resize=0.3, blur_size=7):
     if blur_size > 0:
         img_rgb = cv2.medianBlur(img_rgb, blur_size)
 
@@ -59,7 +59,10 @@ def show_color_evaluation(img_rgb, resize=0.3, blur_size=5):
     plot_images([img_gm], 1, 1)
 
 
-def segment(img_rgb, scale=0.5):
+def segment(img_rgb, scale=0.5, blur_size=7):
+    if blur_size > 0:
+        img_rgb = cv2.medianBlur(img_rgb, blur_size)
+
     # TODO: segment based on specified model
     new_dim = tuple([int(img_rgb.shape[i] * scale) for i in range(2)])
     img_rgb_resized = cv2.resize(img_rgb, new_dim, interpolation=cv2.INTER_AREA)
