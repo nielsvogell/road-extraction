@@ -14,13 +14,13 @@ def main():
     # 0.25 ->  2s
     # 0.5  -> 12s
     # 1    -> 56s
-    show_color_evaluation("klagenfurt1.png", 0.3, 7)
+    img = cv2.imread("data/klagenfurt1.png")
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    show_color_evaluation(img_rgb, 0.3, 7)
     plt.show()
 
 
-def show_color_evaluation(name, resize=0.3, blur_size=5):
-    img = cv2.imread("data/" + name)
-    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+def show_color_evaluation(img_rgb, resize=0.3, blur_size=5):
     if blur_size > 0:
         img_rgb = cv2.medianBlur(img_rgb, blur_size)
 
