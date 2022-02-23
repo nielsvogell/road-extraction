@@ -1,17 +1,14 @@
 # Imports
 import cv2
-import matplotlib
-matplotlib.use('TkAgg')
-from matplotlib import pyplot as plt
 import numpy as np
-import matplotlib.image as mpimg
-import copy
-from PIL import Image
-from enum import Enum
-from scipy import spatial
 from sklearn.mixture import GaussianMixture
+import pickle as pcl
+# import copy  # previously used -> tbd
+# import time  # only used for profiling
+from matplotlib import use as mpl_use
+mpl_use('TkAgg')
+from matplotlib import pyplot as plt
 
-import time
 
 def plot_images(images, r, c, cmap=None, title=None):
     if title:
@@ -74,6 +71,27 @@ def show_color_evaluation(name):
     plt.figure(figsize=(15, 15))
     plot_images([img_gm], 1, 1)
 
+
+def segment(img_rgb):
+    # TODO: segment based on specified model
+    labels, cluster_colors = cluster_image_colors(img_rgb, nr_clusters=5)
+    
+    max_probs = {'road': 0, 'building': 0, 'background': 0}
+    final_label = {'road': -1, 'building': -1, 'background': -1}
+    for lbl, color in cluster_colors.items():
+        # Evaluate Color
+        evaluation, gray, red, green, blue = evaluate_color(color)
+        
+        if evaluation['road'] > max_probs['road']:
+            max_probs['road'] = evaluation['road']
+            final_label['road'] = lbl
+        # TODO: other labels
+
+    (h, w, d) = img_rgb.shape
+    label_img = labels.reshape(h, w)
+    return label_img, final_label
+
+
 # Arke: Optimized by reshaping
 def cluster_image_colors(img_rgb, nr_clusters):
     all_colors = img_rgb.reshape((-1, 3))
@@ -125,12 +143,26 @@ def gaussian_mixture_cluster(colors, nr_clusters, b_print=False, print_all_value
     return labels, cluster_colors
 
 
+# def save_gm_model(img_rgb, no_clusters, file_name):
+#     all_colors = img_rgb.reshape((-1, 3))
+#     # calculate model
+#     # save model
+#     # Check if histograms of model images look similar enough
+#     # proposed models:
+#     #  - urban_dense
+#     #  - urban_sparse
+#     #  - rural_green (for predominantly fields)
+#     #  - rural_blue (for lakes and possibly ocean)
+#     #  - rural_sand (for deserts or barren lands)
+
+
 # returns building/background/road based on color assignment with "percent_gray_red_green_blue"
 def evaluate_color(color_rgb):
     # Arke: Possible code simplification:
     # is_gray could be a one-liner, removing the need for a function definition
     # Probably not faster and not necessarily more readable
     # is_gray = lambda c: (1 - max([abs(c[1] - c[0]), abs(c[2] - c[1]), abs(c[0] - c[2])]) / 255) * 100
+    # TODO: Vectorize (low priority)
     
     gray = is_gray(color_rgb, min(color_rgb) / 2)  # Why the min_color/2?
     red, green, blue = is_red_green_blue(color_rgb)
