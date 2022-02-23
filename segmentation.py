@@ -6,9 +6,8 @@ import pickle as pcl
 # import copy  # previously used -> tbd
 import time  # only used for profiling
 from matplotlib import use as mpl_use
+# mpl_use('TkAgg')
 from matplotlib import pyplot as plt
-
-mpl_use('TkAgg')
 
 
 def main():
@@ -26,12 +25,12 @@ def show_color_evaluation(name, resize=0.3, blur_size=5):
         img_rgb = cv2.medianBlur(img_rgb, blur_size)
 
     # Resize image -> faster clustering
-    height, width = img.shape[:2]
+    height, width = img_rgb.shape[:2]
     new_dim = (int(width * resize), int(height * resize))
-    resized_img_rgb = cv2.resize(img_rgb, new_dim, interpolation=cv2.INTER_AREA)
+    img_rgb_resized = cv2.resize(img_rgb, new_dim, interpolation=cv2.INTER_AREA)
 
     # Cluster
-    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, resized_img_rgb, nr_clusters=5)
+    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, img_rgb_resized=img_rgb_resized, nr_clusters=6)
 
     for color in cluster_colors.values():
         # Evaluate Color
@@ -60,9 +59,11 @@ def show_color_evaluation(name, resize=0.3, blur_size=5):
     plot_images([img_gm], 1, 1)
 
 
-def segment(img_rgb):
+def segment(img_rgb, scale=0.5):
     # TODO: segment based on specified model
-    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, nr_clusters=5)
+    new_dim = tuple([int(img_rgb.shape[i] * scale) for i in range(2)])
+    img_rgb_resized = cv2.resize(img_rgb, new_dim, interpolation=cv2.INTER_AREA)
+    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, img_rgb_resized=img_rgb_resized, nr_clusters=6)
 
     max_probs = {'road': 0, 'building': 0, 'background': 0}
     final_label = {'road': -1, 'building': -1, 'background': -1}
@@ -75,25 +76,28 @@ def segment(img_rgb):
             final_label['road'] = lbl
         # TODO: other labels
 
+    # TODO: (optional) change label_img to only include (preliminary) labels for road, building and background
     (h, w, d) = img_rgb.shape
     label_img = labels.reshape(h, w)
     return label_img, final_label
 
 
 # Arke: Just a comment, this takes a lot of time. It might be a great method, but finding a faster one is desirable.
-def gaussian_mixture_cluster(img_rgb, resized_img_rgb, nr_clusters, b_print=False):
-
-    colors = img_rgb.reshape((-1, 3))
-    colors = np.array(colors)
-
-    resized_colors = resized_img_rgb.reshape((-1, 3))
-    resized_colors = np.array(resized_colors)
+def gaussian_mixture_cluster(img_rgb, img_rgb_resized=None, nr_clusters=6, b_print=False):
+    if img_rgb_resized:
+        colors_train = img_rgb_resized.reshape((-1, 3))
+    else:
+        colors_train = img_rgb.reshape((-1, 3))
+    colors_train = np.array(colors_train)
 
     # how much time does it take
     start = time.time()
 
     # Cluster with Gaussian Mixture
-    gm = GaussianMixture(n_components=nr_clusters, random_state=0).fit(resized_colors)
+    gm = GaussianMixture(n_components=nr_clusters, random_state=0).fit(colors_train)
+
+    colors = img_rgb.reshape((-1, 3))
+    colors = np.array(colors)
     labels = gm.predict(colors)
 
     gm_time = time.time() - start
