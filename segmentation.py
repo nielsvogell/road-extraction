@@ -79,9 +79,8 @@ def gaussian_mixture_cluster(img_rgb, blur_size=0, scale=None, nr_clusters=6, b_
     if blur_size > 0:
         img_rgb = cv2.medianBlur(img_rgb, blur_size)
 
-    if not scale:
+    if scale:
         # Resize image -> faster clustering
-        height, width = img_rgb.shape[:2]
         new_dim = tuple([int(img_rgb.shape[i] * scale) for i in range(2)])
         img_rgb_resized = cv2.resize(img_rgb, new_dim, interpolation=cv2.INTER_AREA)
         colors_train = img_rgb_resized.reshape((-1, 3))
