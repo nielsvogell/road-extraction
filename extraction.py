@@ -7,17 +7,21 @@ use('TkAgg')
 import matplotlib.pyplot as plt
 
 
-img_rgb = cv2.cvtColor(cv2.imread('data/exp.png'), cv2.COLOR_BGR2RGB)
-label_img, final_label = segmentation.segment(img_rgb)
+img_rgb = cv2.cvtColor(cv2.imread('data/munich.png'), cv2.COLOR_BGR2RGB)
+label_img, final_label = segmentation.segment(img_rgb, nr_clusters=5)
+
+plt.imshow(img_rgb)
+plt.imshow(label_img)
+
 
 # segmentation_obj = (label_img, final_label)
 # label_file = open('segmented.pck', 'ab')
 # pickle.dump(segmentation_obj, label_file)
 # label_file.close()
-# label_file = open('segmented.pck', 'rb')
-# segmentation_obj = pickle.load(label_file)
-# (label_img, final_label) = segmentation_obj
-# label_file.close()
+label_file = open('segmented.pck', 'rb')
+segmentation_obj = pickle.load(label_file)
+(label_img, final_label) = segmentation_obj
+label_file.close()
 
 
 def keep_second_largest_component(img_lbl):
@@ -30,6 +34,7 @@ def keep_second_largest_component(img_lbl):
 
 
 plt.imshow(img_rgb)
+plt.imshow(label_img)
 
 
 road_mask = np.zeros_like(label_img).astype(np.uint8)
@@ -44,6 +49,8 @@ plt.imshow(components)
 
 # remove those with small surface area
 component_size = np.array([np.sum(components == lbl) for lbl in range(no_components)])
+med_component_size = np.median(component_size)
+filtered_components = components.copy()
 road_component = np.argpartition(component_size.flatten(), -2)[-2]
 road_mask_main = np.zeros_like(components, dtype=np.uint8)
 road_mask_main[components == road_component] = 1
@@ -122,7 +129,7 @@ def skeletonize(mask):
 
 # Find intersection points
 roads_thinned = skeletonize(roads_opened)
-
+plt.imshow(roads_thinned, cmap='gray')
 # Scan for points with at least 3 neighbors
 ker_eight_nb = np.ones((3, 3), dtype=np.uint8)
 ker_eight_nb[1, 1] = 0
