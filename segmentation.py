@@ -59,14 +59,14 @@ def show_color_evaluation(img_rgb, resize=0.3, blur_size=7):
     plot_images([img_gm], 1, 1)
 
 
-def segment(img_rgb, scale=0.5, blur_size=7):
+def segment(img_rgb, scale=0.5, blur_size=7, nr_clusters=6):
     if blur_size > 0:
         img_rgb = cv2.medianBlur(img_rgb, blur_size)
 
     # TODO: segment based on specified model
     new_dim = tuple([int(img_rgb.shape[i] * scale) for i in range(2)])
     img_rgb_resized = cv2.resize(img_rgb, new_dim, interpolation=cv2.INTER_AREA)
-    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, img_rgb_resized=img_rgb_resized, nr_clusters=6)
+    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, img_rgb_resized=img_rgb_resized, nr_clusters=nr_clusters)
 
     max_probs = {'road': 0, 'building': 0, 'background': 0}
     final_label = {'road': -1, 'building': -1, 'background': -1}
