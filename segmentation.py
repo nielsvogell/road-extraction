@@ -47,8 +47,8 @@ def show_color_evaluation(img_rgb, resize=0.3, blur_size=7):
         color_swatch_img = [[color] * 6]
 
         # TODO subplots
-        # plt.figure(figsize=(8, 8))
-        # plot_images([color_swatch_img], 1, 1, title=title_rgb + title_colors + title_labels)
+        plt.figure(figsize=(8, 8))
+        plot_images([color_swatch_img], 1, 1, title=title_rgb + title_colors + title_labels)
 
     (h, w, d) = img_rgb.shape
     label_img = labels.reshape(h, w)
@@ -175,8 +175,8 @@ def evaluate_color(color_rgb):
 #       Suggesting to make this an array function (but for small cluster number the performance gain is not significant)
 # Lambda equivalent:
 # lambda c : (1 - max([abs(c[1] - c[0]), abs(c[2] - c[1]), abs(c[0] - c[2])]) / 255) * 100
-def is_gray(color_rgb, diff_range=100):
-    r, g, b = color_rgb
+def is_gray(color_rgb, diff_range):
+    r, g, b = color_rgb.astype(np.int32)
     diffs = abs(r - g), abs(r - b), abs(g - b)
     max_diff = max(diffs)
     gray_percentage = (1 - (max_diff / diff_range)) * 100
