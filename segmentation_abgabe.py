@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 
 
 def main():
-    show_color_evaluation("data/munich.png")
+    show_color_evaluation("data/paper_exp.png")
     # test_segment("data/munich.png")
 
 
@@ -169,7 +169,7 @@ def gaussian_mixture_cluster(img_rgb, blur_size=0, scale=None, nr_clusters=5):
         b_labeled_k = labels == k
         # calculates median of colors for where pixels are True
         # colors as type int32 -> so further calculations can go negative
-        cluster_colors[k] = np.median(colors[b_labeled_k], axis=0).astype(np.int32)
+        cluster_colors[k] = np.mean(colors[b_labeled_k], axis=0).astype(np.int32)
 
     return labels, cluster_colors
 
@@ -188,6 +188,10 @@ def evaluate_color(color_rgb):
         red_green_similarity = 1 - (abs(red - green) / (red + green))
 
     background = red_green_similarity * (1 - gray)
+    # very green values with little red will also be detected as background
+    if green == max([background, red, green, blue]):
+        background = green
+        
     road = gray
     building = 1 - background - road
 
@@ -203,7 +207,7 @@ def evaluate_color(color_rgb):
 def get_color_appearance(color_rgb):
     r, g, b = color_rgb
 
-    # GRAY calculation
+    # LIGHT GRAY calculation
 
     # gives a good representation of how gray a color is based on the similarity of rgb values
     # get the max difference between red, green and blue value
@@ -213,6 +217,11 @@ def get_color_appearance(color_rgb):
     gray = 1 - (max_diff / diff_comparison)
     if gray < 0:
         gray = 0
+    # gives a bigger value to light gray than dark gray
+    lightness = np.mean([r, g, b]) / 200
+    if lightness > 1:
+        lightness = 1
+    gray *= lightness
 
     # RED, GREEN, BLUE calculation
 
