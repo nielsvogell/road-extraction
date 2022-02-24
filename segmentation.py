@@ -20,17 +20,10 @@ def main():
     plt.show()
 
 
-def show_color_evaluation(img_rgb, resize=0.3, blur_size=7):
-    if blur_size > 0:
-        img_rgb = cv2.medianBlur(img_rgb, blur_size)
-
-    # Resize image -> faster clustering
-    height, width = img_rgb.shape[:2]
-    new_dim = (int(width * resize), int(height * resize))
-    img_rgb_resized = cv2.resize(img_rgb, new_dim, interpolation=cv2.INTER_AREA)
+def show_color_evaluation(img_rgb, scale=0.3, blur_size=7):
 
     # Cluster
-    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, img_rgb_resized=img_rgb_resized, nr_clusters=5)
+    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, blur_size=blur_size, scale=scale, nr_clusters=5)
 
     for color in cluster_colors.values():
         # Evaluate Color
@@ -60,14 +53,9 @@ def show_color_evaluation(img_rgb, resize=0.3, blur_size=7):
     plot_images([img_gm], 1, 1)
 
 
-def segment(img_rgb, scale=0.5, blur_size=7, nr_clusters=6):
-    if blur_size > 0:
-        img_rgb = cv2.medianBlur(img_rgb, blur_size)
+def segment(img_rgb, scale=0.5, blur_size=7, nr_clusters=5):
 
-    # TODO: segment based on specified model
-    new_dim = tuple([int(img_rgb.shape[i] * scale) for i in range(2)])
-    img_rgb_resized = cv2.resize(img_rgb, new_dim, interpolation=cv2.INTER_AREA)
-    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, img_rgb_resized=img_rgb_resized, nr_clusters=nr_clusters)
+    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, blur_size=blur_size, scale=scale, nr_clusters=nr_clusters)
 
     max_probs = {'road': 0, 'building': 0, 'background': 0}
     final_label = {'road': -1, 'building': -1, 'background': -1}
@@ -87,11 +75,20 @@ def segment(img_rgb, scale=0.5, blur_size=7, nr_clusters=6):
 
 
 # Arke: Just a comment, this takes a lot of time. It might be a great method, but finding a faster one is desirable.
-def gaussian_mixture_cluster(img_rgb, img_rgb_resized=None, nr_clusters=6, b_print=False):
-    if img_rgb_resized is not None:
+def gaussian_mixture_cluster(img_rgb, blur_size=0, scale=None, nr_clusters=6, b_print=False):
+    if blur_size > 0:
+        img_rgb = cv2.medianBlur(img_rgb, blur_size)
+
+    if not scale:
+        # Resize image -> faster clustering
+        height, width = img_rgb.shape[:2]
+        new_dim = tuple([int(img_rgb.shape[i] * scale) for i in range(2)])
+        img_rgb_resized = cv2.resize(img_rgb, new_dim, interpolation=cv2.INTER_AREA)
         colors_train = img_rgb_resized.reshape((-1, 3))
+
     else:
         colors_train = img_rgb.reshape((-1, 3))
+
     colors_train = np.array(colors_train)
 
     # how much time does it take
