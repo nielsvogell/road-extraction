@@ -24,21 +24,21 @@ def test_segment(img_path):
 
     building_mask = np.zeros_like(map_labels)
     building_mask[np.where(map_labels == 2)] = 1
-    plt.subplot(3, 1, 1)
+    plt.subplot(2, 2, 1)
     plt.axis('off')
     plt.imshow(building_mask, cmap="gray")
     plt.title("Buildings", fontsize=18)
 
     road_mask = np.zeros_like(map_labels)
     road_mask[np.where(map_labels == 1)] = 1
-    plt.subplot(3, 1, 2)
+    plt.subplot(2, 2, 2)
     plt.axis('off')
     plt.imshow(road_mask, cmap="gray")
     plt.title("Roads", fontsize=18)
 
     background_mask = np.zeros_like(map_labels)
     background_mask[np.where(map_labels == 0)] = 1
-    plt.subplot(3, 1, 3)
+    plt.subplot(2, 2, 3)
     plt.axis('off')
     plt.imshow(background_mask, cmap="gray")
     plt.title("Background", fontsize=18)
