@@ -14,7 +14,7 @@ def main():
     # 0.25 ->  2s
     # 0.5  -> 12s
     # 1    -> 56s
-    img = cv2.imread("data/klagenfurt1.png")
+    img = cv2.imread("data/munich.png")
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     show_color_evaluation(img_rgb, 0.3, 7)
     plt.show()
@@ -30,7 +30,7 @@ def show_color_evaluation(img_rgb, resize=0.3, blur_size=7):
     img_rgb_resized = cv2.resize(img_rgb, new_dim, interpolation=cv2.INTER_AREA)
 
     # Cluster
-    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, img_rgb_resized=img_rgb_resized, nr_clusters=6)
+    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, img_rgb_resized=img_rgb_resized, nr_clusters=5)
 
     for color in cluster_colors.values():
         # Evaluate Color
@@ -39,9 +39,10 @@ def show_color_evaluation(img_rgb, resize=0.3, blur_size=7):
         title_rgb = "rgb color: {}\n".format(color)
         title_colors = "gray: {}%, red: {}%, green: {}%, blue: {}%\n".format(round(gray), round(red), round(green),
                                                                              round(blue))
-        title_labels = "background: {}%, road: {}%, building: {}%".format(round(evaluation['background']),
-                                                                          round(evaluation['road']),
-                                                                          round(evaluation['building']))
+
+        background, road, buiding = round(evaluation['background']), round(evaluation['road']), round(evaluation['building'])
+
+        title_labels = "background: {}%, road: {}%, building: {}%".format(background, road, buiding)
 
         color_swatch_img = [[color] * 6]
 
@@ -153,7 +154,12 @@ def evaluate_color(color_rgb):
     # gray -> road or building
     # green and red similar -> background
 
-    background = (1 - (abs(red - green) / (red + green))) * 100
+    if red + green == 0:
+        a = 1
+    else:
+        a = abs(red - green) / (red + green)
+
+    background = (1 - a) * 100
     not_background = (100 - background)
 
     not_gray = (100 - gray) / 100
