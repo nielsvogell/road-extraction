@@ -1,15 +1,6 @@
-# Imports
-import math
-import pprint
-
 import cv2
 import numpy as np
 from sklearn.mixture import GaussianMixture
-import pickle as pcl
-# import copy  # previously used -> tbd
-import time  # only used for profiling
-from matplotlib import use as mpl_use
-# mpl_use('TkAgg')
 from matplotlib import pyplot as plt
 
 
