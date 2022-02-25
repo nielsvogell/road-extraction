@@ -5,9 +5,9 @@ from sklearn.mixture import GaussianMixture
 import pickle as pcl
 # import copy  # previously used -> tbd
 import time  # only used for profiling
-from matplotlib import use as mpl_use
-# mpl_use('TkAgg')
 from matplotlib import pyplot as plt
+
+plt.switch_backend('TkAgg')
 
 
 def main():
