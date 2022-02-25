@@ -3,10 +3,12 @@ import cv2
 import numpy as np
 from sklearn.mixture import GaussianMixture
 import pickle as pcl
-# import copy  # previously used -> tbd
 import time  # only used for profiling
+import sys
+if 'matplotlib' not in sys.modules:
+    from matplotlib import use
+    use('TkAgg')
 from matplotlib import pyplot as plt
-
 plt.switch_backend('TkAgg')
 
 

@@ -1,6 +1,10 @@
 import cv2
 import numpy as np
 from sklearn.mixture import GaussianMixture
+import sys
+if 'matplotlib' not in sys.modules:
+    from matplotlib import use
+    use('TkAgg')
 from matplotlib import pyplot as plt
 
 
