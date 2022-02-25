@@ -51,6 +51,16 @@ def test_segment(img_path):
     plt.show()
 
 
+def get_labels(label='all'):
+    labels = {'background': 0, 'road': 1, 'building': 2}
+    if label == 'all':
+        return labels
+    elif label in labels.keys():
+        return labels[label]
+    else:
+        raise 'Error:UnkownLabel'
+
+
 # calls cluster function and evaluate color function for each clustered color
 # plots the result
 def show_color_evaluation(img_path, scale=0.3, blur_size=7, nr_clusters=5):
