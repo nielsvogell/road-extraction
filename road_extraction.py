@@ -13,10 +13,10 @@ from importlib import reload
 if False:
     if 'extraction' in sys.modules:
         reload(sys.modules['extraction'])
-    from extraction import keep_n_largest_components
-    from extraction import get_skeleton
-    from extraction import thinning_wang
-    from extraction import process_road_mask
+    from road_extraction import keep_n_largest_components
+    from road_extraction import get_skeleton
+    from road_extraction import thinning_wang
+    from road_extraction import process_road_mask
 
 
 def main():
