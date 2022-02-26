@@ -17,6 +17,12 @@ def main():
     img_rgb = cv2.cvtColor(cv2.imread(''.join(['data/', image_name, '.png'])), cv2.COLOR_RGB2BGR)
 
     cluster_img, cluster_labels, cluster_colors = segment(img_rgb)
+    (h, w) = cluster_img.shape
+    color_eval_img = np.zeros((h, w, 3), dtype=np.uint8)
+    if cluster_colors is not None:
+        for lbl, color in cluster_colors.items():
+            color_eval_img[np.where(cluster_img == lbl)] = color.astype(np.uint8)
+            
     roads = extract_roads(cluster_img, cluster_labels, n_largest=7)
     buildings = extract_buildings(cluster_img, cluster_labels, cluster_colors=cluster_colors, output_type='mask')
     
@@ -29,14 +35,24 @@ def main():
 
     gs = fig.add_gridspec(4, 2)
     ax1 = fig.add_subplot(gs[0, 0])
+    ax1.axis('off')
+    ax1.set_title('original')
     ax1.imshow(img_rgb)
     ax2 = fig.add_subplot(gs[0, 1])
-    ax2.imshow(cluster_img)
+    ax2.set_title('segmented image')
+    ax2.axis('off')
+    ax2.imshow(color_eval_img)
     ax3 = fig.add_subplot(gs[1, 0])
+    ax3.set_title('detected buildings')
+    ax3.axis('off')
     ax3.imshow(buildings, cmap='gray')
     ax4 = fig.add_subplot(gs[1, 1])
+    ax4.set_title('road network')
+    ax4.axis('off')
     ax4.imshow(roads, cmap='gray')
     ax5 = fig.add_subplot(gs[2:, :])
+    ax5.set_title('joined output')
+    ax5.axis('off')
     ax5.imshow(img_out)
 
     plt.savefig(''.join(['out/', image_name, '_out.png']), dpi=300)
