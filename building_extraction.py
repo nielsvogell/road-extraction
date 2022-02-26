@@ -119,7 +119,7 @@ def process_labeled_img(labeled_img: np.ndarray, label_colors=None, output_type=
     return output, color_eval_img
 
 
-def extract_buildings(labeled_img: np.ndarray, tresh, min_building_area, nb_buildings=None, label_colors=None,
+def extract_buildings(labeled_img: np.ndarray, tresh=120, min_building_area=1500, nb_buildings=None, label_colors=None,
                       output_type='mask', original: np.ndarray = None):
     """
     Detects contours of buildings in the image and display an accuracy metric
