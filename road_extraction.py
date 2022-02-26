@@ -36,10 +36,10 @@ def main():
     plt.imshow(roads_thinned, cmap='gray')
     
     
-def extract_roads(labeled_img, n_largest=1):
-    labels = segmentation.get_labels()
-    road_mask = np.zeros_like(labeled_img).astype(np.uint8)
-    road_mask[np.where(labeled_img == labels['road'])] = 255
+def extract_roads(cluster_img, cluster_labels, n_largest=1):
+    road_mask = np.zeros_like(cluster_img).astype(np.uint8)
+    for lbl in cluster_labels['road']:
+        road_mask[np.where(cluster_img == lbl)] = 255
     
     road_mask_final = process_road_mask(road_mask, n_largest=n_largest)
     # plt.imshow(road_mask_final, cmap='gray')
