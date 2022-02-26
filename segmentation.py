@@ -19,33 +19,22 @@ def test_segment(img_path):
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
     # SEGMENT
-    map_labels, label_colors = segment(img_rgb)
+    cluster_img, cluster_labels, cluster_colors = segment(img_rgb)
 
     # plot output
-    plt.figure(figsize=(10, 20))
+    plt.figure(figsize=(10, 10))
 
     # 'background': 0, 'road': 1, 'building': 2
 
-    building_mask = np.zeros_like(map_labels)
-    building_mask[np.where(map_labels == 2)] = 1
-    plt.subplot(2, 2, 1)
-    plt.axis('off')
-    plt.imshow(building_mask, cmap="gray")
-    plt.title("Buildings", fontsize=18)
-
-    road_mask = np.zeros_like(map_labels)
-    road_mask[np.where(map_labels == 1)] = 1
-    plt.subplot(2, 2, 2)
-    plt.axis('off')
-    plt.imshow(road_mask, cmap="gray")
-    plt.title("Roads", fontsize=18)
-
-    background_mask = np.zeros_like(map_labels)
-    background_mask[np.where(map_labels == 0)] = 1
-    plt.subplot(2, 2, 3)
-    plt.axis('off')
-    plt.imshow(background_mask, cmap="gray")
-    plt.title("Background", fontsize=18)
+    # 'background', 'road', 'building'
+    for index, map_type in enumerate(cluster_labels.keys()):
+        mask = np.zeros_like(cluster_img)
+        for lbl in cluster_labels[map_type]:
+            mask[np.where(cluster_img == lbl)] = 1
+        plt.subplot(2, 2, index+1)
+        plt.axis('off')
+        plt.imshow(mask, cmap="gray")
+        plt.title(map_type, fontsize=18)
 
     plt.tight_layout()
     plt.show()
