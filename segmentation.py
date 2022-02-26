@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 
 def main():
     # show_color_evaluation("data/munich.png")
-    test_segment("data/tanguy.png")
+    test_segment("data/test01.png")
 
 
 def test_segment(img_path):
