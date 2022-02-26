@@ -134,19 +134,25 @@ def segment(img_rgb, scale=0.3, blur_size=7, nr_clusters=5):
     # make zero array like cluster_labels to later fill with map_type labels
     map_labels = np.zeros_like(cluster_labels)
 
+    type_to_nr = get_labels()  # Returns dict mapping labels to numbers
     for lbl, color in cluster_colors.items():
         # evaluate color returns ('background', 'road', 'building') with percentage probability for each label
         map_type_probability, _ = evaluate_color(color)
         # get the label with max probability
         max_map_type = max(map_type_probability, key=map_type_probability.get)
-        type_to_nr = {'background': 0, 'road': 1, 'building': 2}
+        
         # replace all cluster labels of this color with its map type label
         map_labels[np.where(cluster_labels == lbl)] = type_to_nr[max_map_type]
 
     # reshape one dimensional image into two dimensions of original image
     h, w, _ = img_rgb.shape
     map_labels = map_labels.reshape(h, w)
-    return map_labels
+    
+    label_colors = {}
+    for key, val in type_to_nr.items():
+        label_colors[key] = np.mean(img_rgb[map_labels == val].reshape((-1, 3)), axis=0)
+    
+    return map_labels, label_colors
 
 
 # CLUSTERS ALL COLORS OF THE IMAGE
