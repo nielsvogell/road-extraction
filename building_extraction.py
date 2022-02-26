@@ -1,21 +1,11 @@
 # Imports
 import cv2
+import numpy as np
+import sys
+if 'matplotlib' not in sys.modules:
+    from matplotlib import use
+    use('TkAgg')
 from matplotlib import pyplot as plt
-import numpy as np
-import matplotlib.image as mpimg
-import copy
-from PIL import Image
-from enum import Enum
-from scipy import spatial
-from sklearn.mixture import GaussianMixture
-import imutils
-import numpy as np
-import matplotlib.pyplot as plt
-import copy
-from scipy.interpolate import splprep, splev
-from scipy import ndimage
-import pickle as pcl
-import time
 
 import segmentation
 from segmentation import segment
@@ -23,66 +13,52 @@ from segmentation import segment
 
 def main():
     image_path = 'data/munich.png'
+    img_rgb = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
     
-    labeled_img, labels = segment(image_path)
+    labeled_img, label_colors = segment(img_rgb)
     
-    image = labeled_img.copy()
+    detected_buildings = building_detection(labeled_img, 120, 1500, 60, output_type="original", original=img_rgb)
     
-    ### output_type : "mask"
-    
-    mask =
-    
-    ### output_type : "tricolor"
-    
-    try:
-    
-    
-    except:
-        imagea = np.where(image == [170, 167, 175], 255, 0)
-        imageb = np.where(image == [48, 54, 67], 0, 0)
-        road_mask = (imagea * 0.5 + imageb * 0.5).astype(np.uint8)
-        road_mask = road_mask.astype(np.uint8)
+    plt.imshow(detected_buildings)
+    print('Done!')
 
-    detected_buildings = building_detection(labeled_img, 120, 1500, 60, output_type="original")
+# Deprecated?
+# def morph2(img, kernel):
+#     (h, w) = img.shape[:2]  # get image dimensions
+#
+#     for i in range(10):
+#         Im_d = cv2.dilate(img, kernel, iterations=1)  # dilate
+#         Im_e = cv2.erode(img, kernel, iterations=1)  # erode
+#         Im_h = 0.5 * (Im_d + Im_e)  # combination of dilate and erode
+#
+#         # if original pixel is darker than dilated and eroded image, keep dilated image else the eroded image
+#         img = np.where(img > Im_h, Im_d, Im_e)
+#
+#     return img
 
-
-def morph2(img, kernel):
-    (h, w) = img.shape[:2]  # get image dimensions
-    
-    for i in range(10):
-        Im_d = cv2.dilate(img, kernel, iterations=1)  # dilate
-        Im_e = cv2.erode(img, kernel, iterations=1)  # erode
-        Im_h = 0.5 * (Im_d + Im_e)  # combination of dilate and erode
-        
-        # if original pixel is darker than dilated and eroded image, keep dilated image else the eroded image
-        img = np.where(img > Im_h, Im_d, Im_e)
-    
-    return img
-
-
-def morph(img, kernel):
-    (h, w) = img.shape[:2]  # get image dimensions
-    
-    for i in range(10):
-        Im_d = cv2.dilate(img, kernel, iterations=1)  # dilate
-        Im_e = cv2.erode(img, kernel, iterations=1)  # erode
-        Im_h = 0.5 * (Im_d + Im_e)  # combination of dilate and erode
-        
-        for y in range(0, h):
-            for x in range(0, w):
-                # threshold the pixel
-                if img[y, x] > Im_h[y, x]:
-                    img[y, x] = Im_d[y, x]  # if original pixel is darker than dilated and eroded pixel, dilate pixel
-                else:
-                    img[y, x] = Im_e[y, x]  # if original pixel is lighter than dilated and eroded pixel, erode pixel
-    
-    return img
+# Deprecated?
+# def morph(img, kernel):
+#     (h, w) = img.shape[:2]  # get image dimensions
+#
+#     for i in range(10):
+#         Im_d = cv2.dilate(img, kernel, iterations=1)  # dilate
+#         Im_e = cv2.erode(img, kernel, iterations=1)  # erode
+#         Im_h = 0.5 * (Im_d + Im_e)  # combination of dilate and erode
+#
+#         for y in range(0, h):
+#             for x in range(0, w):
+#                 # threshold the pixel
+#                 if img[y, x] > Im_h[y, x]:
+#                     img[y, x] = Im_d[y, x]  # if original pixel is darker than dilated and eroded pixel, dilate pixel
+#                 else:
+#                     img[y, x] = Im_e[y, x]  # if original pixel is lighter than dilated and eroded pixel, erode pixel
+#
+#     return img
 
 
-
-def process_labeled_img(labeled_img, label_colors=None, output_type='mask', original=None):
+def process_labeled_img(labeled_img: np.ndarray, label_colors=None, output_type='mask', original=None):
     labels = segmentation.get_labels()
-    road_mask = labeled_img == labels['road']
+    road_mask = (1*(labeled_img == labels['road'])).astype(np.uint8)
     
     # Blur image to make shapes stand out, remove noise & unnecessary details
     road_mask = cv2.bilateralFilter(road_mask, 12, 20, 500)
@@ -92,7 +68,7 @@ def process_labeled_img(labeled_img, label_colors=None, output_type='mask', orig
     
     # Remove secondary structures (large, stuctural noise)
     road_mask = cv2.morphologyEx(road_mask, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (2, 5)),
-                                   iterations=4)
+                                 iterations=4)
     
     # Reconnect sections of horizontal & vertical roads that may be disconnected by shadows, bridges, etc...
     road_mask = cv2.dilate(road_mask, cv2.getStructuringElement(cv2.MORPH_RECT, (1, 5)), iterations=9)
@@ -100,17 +76,20 @@ def process_labeled_img(labeled_img, label_colors=None, output_type='mask', orig
     
     # Reconnect holes within roads to make uniform shapes
     road_mask = cv2.morphologyEx(road_mask, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)),
-                                   iterations=3)
+                                 iterations=3)
     
     # Enhance features (to counteract dilation operations)
     road_mask = cv2.dilate(road_mask, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)), iterations=3)
     
-    # Make a mask with just road network in blue
-    roads = np.where(road_mask == [255, 255, 255], (0, 0, 255), 0)
-    # Make a mask with everything other than road network (=background+buildings) in green
-    background = np.where(road_mask == [0, 0, 0], (0, 255, 0), 0)
-    # Make a bicolor mask combining a blue road network & green background
-    background_and_roads = (background * 0.5 + roads * 0.5).astype(np.uint8)
+    ##################################
+    # Unused and potentially not working with current interfaces
+    # # Make a mask with just road network in blue
+    # roads = np.where(road_mask == [255, 255, 255], (0, 0, 255), 0)
+    # # Make a mask with everything other than road network (=background+buildings) in green
+    # background = np.where(road_mask == [0, 0, 0], (0, 255, 0), 0)
+    # # Make a bicolor mask combining a blue road network & green background
+    # background_and_roads = (background * 0.5 + roads * 0.5).astype(np.uint8)
+    ##################################
 
     # Apply tricolor mask to original image
     (h, w) = labeled_img.shape
@@ -119,6 +98,7 @@ def process_labeled_img(labeled_img, label_colors=None, output_type='mask', orig
         col_rd = label_colors['road']
         col_bd = label_colors['building']
     else:
+        # TODO: Choose better colors for distinguishing later
         col_bg = np.array([206, 234, 214], dtype=np.uint8)
         col_rd = np.array([241, 243, 244], dtype=np.uint8)
         col_bd = np.array([252, 232, 230], dtype=np.uint8)
@@ -126,10 +106,10 @@ def process_labeled_img(labeled_img, label_colors=None, output_type='mask', orig
     color_eval_img = np.zeros((h, w, 3), dtype=np.uint8)
     color_eval_img[np.where(labeled_img == labels['background'])] = col_bg
     color_eval_img[np.where(road_mask)] = col_rd
-    color_eval_img[np.where(color_eval_img == [0, 0, 0])] = col_bd
+    color_eval_img[np.where(np.all(color_eval_img == np.array([0, 0, 0])[np.newaxis, np.newaxis, :], axis=2))] = col_bd
 
-    ### Generating output
-    if output_type == 'original' and original:
+    # Generating output
+    if output_type == 'original' and original is not None:
         output = original.copy()
     elif output_type == 'tricolor':
         output = color_eval_img.copy()
@@ -139,8 +119,8 @@ def process_labeled_img(labeled_img, label_colors=None, output_type='mask', orig
     return output, color_eval_img
 
 
-def building_detection(labeled_img, tresh, min_building_area, nb_buildings=None, label_colors=None, output_type='mask',
-                       original=None):
+def building_detection(labeled_img: np.ndarray, tresh, min_building_area, nb_buildings=None, label_colors=None,
+                       output_type='mask', original: np.ndarray = None):
     """ Detects contours of buildings in the image and display an accuracy metric
     @Author : Tanguy Gerniers (W21)
     @Args :
@@ -159,8 +139,9 @@ def building_detection(labeled_img, tresh, min_building_area, nb_buildings=None,
     """
     
     labels = segmentation.get_labels()
-    building_mask = labeled_img == labels['building']
+    building_mask = (labeled_img == labels['building']).astype(np.uint8)
     
+
     # Blur image to make shapes stand out, remove noise & unnecessary details
     buildings_processed = cv2.bilateralFilter(building_mask, 12, 20, 500)
     
@@ -181,7 +162,6 @@ def building_detection(labeled_img, tresh, min_building_area, nb_buildings=None,
     
     # Detect building edges
     edges = cv2.Canny(buildings_processed, 110, 255)
-    
     
     # Extract contours & hierarchy from edges
     contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -252,7 +232,8 @@ def building_detection(labeled_img, tresh, min_building_area, nb_buildings=None,
                 output = cv2.line(output, (max_x, max_y), (min_x, max_y), (255, 0, 0), 3)
                 output = cv2.line(output, (max_x, max_y), (max_x, min_y), (255, 0, 0), 3)
             
-            # If corners of contour are sufficiently different to one another, it probably has a unique shape -> draw contour as it is
+            # If corners of contour are sufficiently different to one another, it probably has a unique shape
+            #     -> draw contour as it is
             else:
                 unique_contours.append(contour)
     
@@ -260,9 +241,9 @@ def building_detection(labeled_img, tresh, min_building_area, nb_buildings=None,
         print("Accuracy score :", str((counter / nb_buildings) * 100)[:4], "%",
               " (approximately %i out of %i buildings have been detected)" % (counter, nb_buildings))
 
-    
     # Draw unique building contours, in red,  onto chosen background
-    output = cv2.drawContours(output, unique_contours, -1, (255, 0, 0), 3)
+    if np.any(unique_contours):
+        output = cv2.drawContours(output, unique_contours, -1, (255, 0, 0), 3)
     
     return output
 
