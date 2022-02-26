@@ -58,7 +58,7 @@ def main():
 
 def process_labeled_img(labeled_img: np.ndarray, label_colors=None, output_type='mask', original=None):
     labels = segmentation.get_labels()
-    road_mask = (1*(labeled_img == labels['road'])).astype(np.uint8)
+    road_mask = (255*(labeled_img == labels['road'])).astype(np.uint8)
     
     # Blur image to make shapes stand out, remove noise & unnecessary details
     road_mask = cv2.bilateralFilter(road_mask, 12, 20, 500)
@@ -121,7 +121,8 @@ def process_labeled_img(labeled_img: np.ndarray, label_colors=None, output_type=
 
 def building_detection(labeled_img: np.ndarray, tresh, min_building_area, nb_buildings=None, label_colors=None,
                        output_type='mask', original: np.ndarray = None):
-    """ Detects contours of buildings in the image and display an accuracy metric
+    """
+    Detects contours of buildings in the image and display an accuracy metric
     @Author : Tanguy Gerniers (W21)
     @Args :
       path (str) : The file location of the image.
@@ -141,7 +142,6 @@ def building_detection(labeled_img: np.ndarray, tresh, min_building_area, nb_bui
     labels = segmentation.get_labels()
     building_mask = (labeled_img == labels['building']).astype(np.uint8)
     
-
     # Blur image to make shapes stand out, remove noise & unnecessary details
     buildings_processed = cv2.bilateralFilter(building_mask, 12, 20, 500)
     
