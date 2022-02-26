@@ -248,7 +248,6 @@ def extract_buildings(labeled_img: np.ndarray, tresh=120, min_building_area=1500
     return output
 
 
-
-
 if __name__ == '__main__':
     main()
+    

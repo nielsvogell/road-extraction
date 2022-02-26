@@ -48,7 +48,7 @@ def extract_roads(labeled_img):
     roads_thinned = get_skeleton(road_mask_final)
     # plt.imshow(roads_thinned, cmap='gray')
 
-    roads_thinned_2 = thinning_wang(roads_thinned)
+    # roads_thinned_2 = thinning_wang(roads_thinned)
     # plt.imshow(roads_thinned_2, cmap='gray')
     
     # # Find intersection points
@@ -80,14 +80,17 @@ def extract_roads(labeled_img):
 
 def keep_n_largest_components(img_labeled, n_largest=1):
     # Find connected components
-    no_components, components = cv2.connectedComponents(img_labeled)
+    no_components, components = cv2.connectedComponents(img_labeled.astype(np.uint8))
     # Calculate surface area
     component_size = np.array([np.sum(components == lbl) for lbl in range(no_components)])
     # take the n_largest largest components to continue
     if n_largest > no_components:
         n_largest = no_components
-    n_largest_components = np.argpartition(component_size.flatten(), -(n_largest + 1))[-(n_largest + 1):]
-    n_largest_components = np.delete(n_largest_components, np.argmax(component_size[n_largest_components]))
+    if no_components == 1:
+        n_largest_components = [0]
+    else:
+        n_largest_components = np.argpartition(component_size.flatten(), -(n_largest + 1))[-(n_largest + 1):]
+        n_largest_components = np.delete(n_largest_components, np.argmax(component_size[n_largest_components]))
     
     # Create mask for remaining components
     mask = np.zeros_like(img_labeled, dtype=np.uint8)
