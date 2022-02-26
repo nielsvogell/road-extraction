@@ -41,7 +41,7 @@ def extract_roads(labeled_img, n_largest=1):
     road_mask = np.zeros_like(labeled_img).astype(np.uint8)
     road_mask[np.where(labeled_img == labels['road'])] = 255
     
-    road_mask_final = process_road_mask(labeled_img, n_largest=n_largest)
+    road_mask_final = process_road_mask(road_mask, n_largest=n_largest)
     # plt.imshow(road_mask_final, cmap='gray')
     
     # Thinning process
@@ -116,7 +116,7 @@ def process_road_mask(img_labeled, n_largest=1):
     roads_processed = keep_n_largest_components(roads_processed, n_largest)
     
     # Close any potential new holes in the mask
-    ker = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
+    ker = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (13, 13))
     roads_processed = cv2.morphologyEx(roads_processed, cv2.MORPH_CLOSE, kernel=ker)
     
     return roads_processed
