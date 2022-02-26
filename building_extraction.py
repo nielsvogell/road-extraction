@@ -56,9 +56,14 @@ def main():
 #     return img
 
 
-def process_labeled_img(labeled_img: np.ndarray, label_colors=None, output_type='mask', original=None):
-    labels = segmentation.get_labels()
-    road_mask = (255*(labeled_img == labels['road'])).astype(np.uint8)
+def process_labeled_img(cluster_img: np.ndarray, cluster_labels, cluster_colors=None, output_type='mask', original=None):
+    background_mask = np.zeros_like(cluster_img, dtype=np.uint8)
+    for lbl in cluster_labels['background']:
+        background_mask[np.where(cluster_img == lbl)] = 255
+        
+    road_mask = np.zeros_like(cluster_img, dtype=np.uint8)
+    for lbl in cluster_labels['road']:
+        road_mask[np.where(cluster_img == lbl)] = 255
     
     # Blur image to make shapes stand out, remove noise & unnecessary details
     road_mask = cv2.bilateralFilter(road_mask, 12, 20, 500)
@@ -92,34 +97,34 @@ def process_labeled_img(labeled_img: np.ndarray, label_colors=None, output_type=
     ##################################
 
     # Apply tricolor mask to original image
-    (h, w) = labeled_img.shape
-    if label_colors:
-        col_bg = label_colors['background']
-        col_rd = label_colors['road']
-        col_bd = label_colors['building']
+    (h, w) = cluster_img.shape
+    color_eval_img = np.zeros((h, w, 3), dtype=np.uint8)
+    if cluster_colors is not None:
+        for lbl, color in cluster_colors.items():
+            color_eval_img[np.where(cluster_img == lbl)] = color.astype(np.uint8)
     else:
         # TODO: Choose better colors for distinguishing later
-        col_bg = np.array([206, 234, 214], dtype=np.uint8)
-        col_rd = np.array([241, 243, 244], dtype=np.uint8)
-        col_bd = np.array([252, 232, 230], dtype=np.uint8)
+        default_colors = {'background': np.array([206, 234, 214], dtype=np.uint8),
+                          'road': np.array([241, 243, 244], dtype=np.uint8),
+                          'building': np.array([252, 232, 230], dtype=np.uint8)}
         
-    color_eval_img = np.zeros((h, w, 3), dtype=np.uint8)
-    color_eval_img[np.where(labeled_img == labels['background'])] = col_bg
-    color_eval_img[np.where(road_mask)] = col_rd
-    color_eval_img[np.where(np.all(color_eval_img == np.array([0, 0, 0])[np.newaxis, np.newaxis, :], axis=2))] = col_bd
-
+        for tp, color in default_colors.items():
+            for lbl in cluster_labels[tp]:
+                color_eval_img[np.where(cluster_img == lbl)] = color
+    
     # Generating output
     if output_type == 'original' and original is not None:
-        output = original.copy()
-    elif output_type == 'tricolor':
-        output = color_eval_img.copy()
+        output = original.copy().astype(np.uint8)
+    elif output_type == 'label_color':
+        output = color_eval_img.copy().astype(np.uint8)
     else:  # output_type == 'mask'
-        output = np.zeros_like(color_eval_img)
+        output = np.zeros_like(cluster_img).astype(np.uint8)
     
     return output, color_eval_img
 
 
-def extract_buildings(labeled_img: np.ndarray, tresh=120, min_building_area=1500, nb_buildings=None, label_colors=None,
+def extract_buildings(cluster_img: np.ndarray, cluster_labels: np.ndarray,
+                      thresh=120, min_building_area=1500, nb_buildings=None, cluster_colors=None,
                       output_type='mask', original: np.ndarray = None):
     """
     Detects contours of buildings in the image and display an accuracy metric
@@ -128,7 +133,7 @@ def extract_buildings(labeled_img: np.ndarray, tresh=120, min_building_area=1500
       path (str) : The file location of the image.
       output_type(str) :  "mask" : no background
                           "original" : original image as background
-                          "tricolor" : 2 clusters (road network in blue, everything else in green) as background
+                          "label_color" : 2 clusters (road network in blue, everything else in green) as background
       tresh (int) : Determines whether contours should follow contour edges (0) or bound them within smoother
                     rectangular boxes where possible (120)
       min_building_area(int) : minimum area a building must be to be considered (recommended : 500-1500, depending on
@@ -138,12 +143,33 @@ def extract_buildings(labeled_img: np.ndarray, tresh=120, min_building_area=1500
     @Returns :      output (image) : background of choice with contours of detected buildings in red applied on top as a
                                      mask
     """
+    output, color_img = process_labeled_img(cluster_img, cluster_labels,
+                                            cluster_colors=cluster_colors, output_type=output_type,
+                                            original=original)
+    max_nr_buildings = 0
     
-    labels = segmentation.get_labels()
-    building_mask = ((labeled_img == labels['building']) * 255).astype(np.uint8)
+    building_mask = np.zeros_like(color_img, dtype=np.uint8)
+    for lbl in cluster_labels['building']:
+        lbl_indices = np.where(cluster_img == lbl)
+        building_mask[lbl_indices] = color_img[lbl_indices]
+        
+    output, nr_buildings = extract_buildings_with_label(building_mask, output.copy(), color_img,
+                                                        thresh=thresh,
+                                                        min_building_area=min_building_area,
+                                                        nb_buildings=nb_buildings,
+                                                        label_colors=cluster_colors,
+                                                        output_type=output_type)
+
+    return output
+    
+    
+def extract_buildings_with_label(building_mask: np.ndarray, output: np.ndarray,
+                                 color_img: np.ndarray,
+                                 thresh: int = 120, min_building_area=1500, nb_buildings=None, label_colors=None,
+                                 output_type='mask'):
     
     # Blur image to make shapes stand out, remove noise & unnecessary details
-    buildings_processed = cv2.bilateralFilter(building_mask, 12, 20, 500)
+    buildings_processed = cv2.bilateralFilter(building_mask.copy(), 12, 20, 500)
     
     # Ensure image is binary for morphological operations
     buildings_processed = cv2.threshold(buildings_processed, 101, 255, cv2.THRESH_BINARY)[1]
@@ -167,7 +193,7 @@ def extract_buildings(labeled_img: np.ndarray, tresh=120, min_building_area=1500
     contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     # Prepare output
-    output, color_eval_img = process_labeled_img(labeled_img, label_colors, output_type, original)
+    # output, color_eval_img = process_labeled_img(cluster_img, label_colors, output_type, original)
     
     # list storing contours that are not rectangular
     unique_contours = []
@@ -209,30 +235,35 @@ def extract_buildings(labeled_img: np.ndarray, tresh=120, min_building_area=1500
             # avg_color_cnt = np.array(cv2.mean(color_eval_img[y:(y + h), x:(x + w)])).astype(np.uint8)
             # d0 = int(avg_color_cnt[0]) + int(avg_color_cnt[1]) + int(avg_color_cnt[2])
             # bottom left
-            avg_color1 = np.array(cv2.mean(color_eval_img[y: y + int(h / 2), x: x + int(w / 2)])).astype(np.uint8)
+            avg_color1 = np.array(cv2.mean(color_img[y: y + int(h / 2), x: x + int(w / 2)])).astype(np.uint8)
             d1 = int(avg_color1[0]) + int(avg_color1[1]) + int(avg_color1[2])
             # top left
-            avg_color2 = np.array(cv2.mean(color_eval_img[y + int(h / 2): y + h, x: x + int(w / 2)])).astype(np.uint8)
+            avg_color2 = np.array(cv2.mean(color_img[y + int(h / 2): y + h, x: x + int(w / 2)])).astype(np.uint8)
             d2 = int(avg_color2[0]) + int(avg_color2[1]) + int(avg_color2[2])
             # bottom right
-            avg_color3 = np.array(cv2.mean(color_eval_img[y: y + int(h / 2), x + int(w / 2): x + w])).astype(np.uint8)
+            avg_color3 = np.array(cv2.mean(color_img[y: y + int(h / 2), x + int(w / 2): x + w])).astype(np.uint8)
             d3 = int(avg_color3[0]) + int(avg_color3[1]) + int(avg_color3[2])
             # top right
-            avg_color4 = np.array(cv2.mean(color_eval_img[y + int(h / 2): y + h, x + int(w / 2): x + w])).astype(
+            avg_color4 = np.array(cv2.mean(color_img[y + int(h / 2): y + h, x + int(w / 2): x + w])).astype(
                 np.uint8)
             d4 = int(avg_color4[0]) + int(avg_color4[1]) + int(avg_color4[2])
             
             # If corners of contour are sufficiently similar to one another, it is probably a rectangle/trapezoid
             #   -> draw smooth & rectangular bounding box
-            if abs(d1 - d2) < tresh and abs(d1 - d3) < tresh and abs(d1 - d4) < tresh and abs(d2 - d3) < tresh and abs(
-                    d2 - d4) < tresh and abs(d3 - d4) < tresh:
+            if abs(d1 - d2) < thresh and abs(d1 - d3) < thresh and abs(d1 - d4) < thresh and abs(d2 - d3) < thresh and \
+                    abs(d2 - d4) < thresh and abs(d3 - d4) < thresh:
                 # Draw rectangular building contours, in red, onto chosen background
-                output = cv2.line(output, (min_x, min_y), (min_x, max_y), (255, 0, 0), 3)
-                output = cv2.line(output, (min_x, min_y), (max_x, min_y), (255, 0, 0), 3)
-                output = cv2.line(output, (max_x, max_y), (min_x, max_y), (255, 0, 0), 3)
-                output = cv2.line(output, (max_x, max_y), (max_x, min_y), (255, 0, 0), 3)
+                if len(output.shape) == 3:
+                    output = cv2.line(output, (min_x, min_y), (min_x, max_y), (255, 0, 0), 3)
+                    output = cv2.line(output, (min_x, min_y), (max_x, min_y), (255, 0, 0), 3)
+                    output = cv2.line(output, (max_x, max_y), (min_x, max_y), (255, 0, 0), 3)
+                    output = cv2.line(output, (max_x, max_y), (max_x, min_y), (255, 0, 0), 3)
+                else:
+                    output = cv2.line(output, (min_x, min_y), (min_x, max_y), 255, 3)
+                    output = cv2.line(output, (min_x, min_y), (max_x, min_y), 255, 3)
+                    output = cv2.line(output, (max_x, max_y), (min_x, max_y), 255, 3)
+                    output = cv2.line(output, (max_x, max_y), (max_x, min_y), 255, 3)
                 
-            
             # If corners of contour are sufficiently different to one another, it probably has a unique shape
             #     -> draw contour as it is
             else:
@@ -243,13 +274,10 @@ def extract_buildings(labeled_img: np.ndarray, tresh=120, min_building_area=1500
               " (approximately %i out of %i buildings have been detected)" % (counter, nb_buildings))
 
     # Draw unique building contours, in red,  onto chosen background
-    if np.any(unique_contours):
+    if len(unique_contours) > 0:
         output = cv2.drawContours(output, unique_contours, -1, (255, 0, 0), 3)
-    
-    if output_type == 'mask':
-        output = np.any(output, axis=2)
-    
-    return output
+        
+    return output, len(contours)
 
 
 if __name__ == '__main__':
