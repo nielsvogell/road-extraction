@@ -68,7 +68,8 @@ def show_color_evaluation(img_path, scale=0.3, blur_size=7, nr_clusters=5):
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
     # Cluster colors of image
-    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, blur_size=blur_size, scale=scale, nr_clusters=nr_clusters)
+    labels, cluster_colors = gaussian_mixture_cluster(img_rgb, blur_size=blur_size, scale=scale,
+                                                      nr_clusters=nr_clusters)
 
     # PLOT
     plt.figure(figsize=(10, nr_clusters*2.5))
@@ -126,10 +127,12 @@ def show_color_evaluation(img_path, scale=0.3, blur_size=7, nr_clusters=5):
 # calls gaussian mixture clustering and evaluate color function for each color
 # maps most probable label ('background' 0, 'road' 1, 'building' 2) for each pixel
 # input image, resizing scale, blur scale, and number clusters
-# returns two dim array of image shape with one of following labels: 'background': 0, 'road': 1, 'building': 2 for each pixel
+# returns two dim array of image shape with one of following labels:
+#    'background': 0, 'road': 1, 'building': 2 for each pixel
 def segment(img_rgb, scale=0.3, blur_size=7, nr_clusters=5):
     # calls gaussian mixture clustering
-    cluster_labels, cluster_colors = gaussian_mixture_cluster(img_rgb, blur_size=blur_size, scale=scale, nr_clusters=nr_clusters)
+    cluster_labels, cluster_colors = gaussian_mixture_cluster(img_rgb, blur_size=blur_size, scale=scale,
+                                                              nr_clusters=nr_clusters)
 
     # make zero array like cluster_labels to later fill with map_type labels
     map_labels = np.zeros_like(cluster_labels)
