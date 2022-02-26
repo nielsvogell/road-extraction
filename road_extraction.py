@@ -10,18 +10,18 @@ from matplotlib import pyplot as plt
 from importlib import reload
 
 # for debugging
-if False:
-    if 'extraction' in sys.modules:
-        reload(sys.modules['extraction'])
-    from road_extraction import keep_n_largest_components
-    from road_extraction import get_skeleton
-    from road_extraction import thinning_wang
-    from road_extraction import process_road_mask
+# if False:
+#     if 'extraction' in sys.modules:
+#         reload(sys.modules['extraction'])
+#     from road_extraction import keep_n_largest_components
+#     from road_extraction import get_skeleton
+#     from road_extraction import thinning_wang
+#     from road_extraction import process_road_mask
 
 
 def main():
     img_rgb = cv2.cvtColor(cv2.imread('data/exp_lit.png'), cv2.COLOR_BGR2RGB)
-    label_img, final_label = segmentation.segment(img_rgb, nr_clusters=5)
+    label_img, _ = segmentation.segment(img_rgb, nr_clusters=5)
     
     # segmentation_obj = (label_img, final_label)
     # label_file = open('segmented.pck', 'ab')
@@ -32,15 +32,16 @@ def main():
     # (label_img, final_label) = segmentation_obj
     # label_file.close()
     
-    road_mask = np.zeros_like(label_img).astype(np.uint8)
-    road_mask[np.where(label_img == final_label['road'])] = 255
-
-    roads_thinned = extract_roads(road_mask)
+    roads_thinned = extract_roads(label_img)
     plt.imshow(roads_thinned, cmap='gray')
     
     
-def extract_roads(road_mask):
-    road_mask_final = process_road_mask(road_mask)
+def extract_roads(labeled_img):
+    labels = segmentation.get_labels()
+    road_mask = np.zeros_like(labeled_img).astype(np.uint8)
+    road_mask[np.where(labeled_img == labels['road'])] = 255
+    
+    road_mask_final = process_road_mask(labeled_img)
     # plt.imshow(road_mask_final, cmap='gray')
     
     # Thinning process
@@ -49,7 +50,6 @@ def extract_roads(road_mask):
 
     roads_thinned_2 = thinning_wang(roads_thinned)
     # plt.imshow(roads_thinned_2, cmap='gray')
-    
     
     # # Find intersection points
     # # Scan for points with at least 3 neighbors
@@ -170,7 +170,6 @@ def thinning_wang(roads_thinned):
         contour = np.pad(contour, (1, 1))
         index_i, index_j = np.where(contour)
         # plt.imshow(contour, cmap='gray')
-    
     
         ker_nb = np.ones((3, 3), dtype=np.uint8)
         ker_nb[1, 1] = 0
