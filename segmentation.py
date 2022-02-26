@@ -9,8 +9,8 @@ from matplotlib import pyplot as plt
 
 
 def main():
-    show_color_evaluation("data/paper_exp.png")
-    # test_segment("data/munich.png")
+    # show_color_evaluation("data/munich.png")
+    test_segment("data/tanguy.png")
 
 
 def test_segment(img_path):
@@ -19,7 +19,7 @@ def test_segment(img_path):
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
     # SEGMENT
-    map_labels = segment(img_rgb)
+    map_labels, label_colors = segment(img_rgb)
 
     # plot output
     plt.figure(figsize=(10, 20))
@@ -58,7 +58,7 @@ def get_labels(label='all'):
     elif label in labels.keys():
         return labels[label]
     else:
-        raise 'Error:UnkownLabel'
+        raise 'Error:UnknownLabel'
 
 
 # calls cluster function and evaluate color function for each clustered color
@@ -241,7 +241,7 @@ def get_color_appearance(color_rgb):
     if gray < 0:
         gray = 0
     # gives a bigger value to light gray than dark gray
-    lightness = np.mean([r, g, b]) / 200
+    lightness = np.mean([r, g, b]) / 210
     if lightness > 1:
         lightness = 1
     gray *= lightness
