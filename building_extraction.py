@@ -114,7 +114,7 @@ def process_labeled_img(labeled_img: np.ndarray, label_colors=None, output_type=
     elif output_type == 'tricolor':
         output = color_eval_img.copy()
     else:  # output_type == 'mask'
-        output = np.zeros_like(labeled_img)
+        output = np.zeros_like(color_eval_img)
     
     return output, color_eval_img
 
@@ -140,7 +140,7 @@ def extract_buildings(labeled_img: np.ndarray, tresh=120, min_building_area=1500
     """
     
     labels = segmentation.get_labels()
-    building_mask = (labeled_img == labels['building']).astype(np.uint8)
+    building_mask = ((labeled_img == labels['building']) * 255).astype(np.uint8)
     
     # Blur image to make shapes stand out, remove noise & unnecessary details
     buildings_processed = cv2.bilateralFilter(building_mask, 12, 20, 500)
@@ -231,6 +231,7 @@ def extract_buildings(labeled_img: np.ndarray, tresh=120, min_building_area=1500
                 output = cv2.line(output, (min_x, min_y), (max_x, min_y), (255, 0, 0), 3)
                 output = cv2.line(output, (max_x, max_y), (min_x, max_y), (255, 0, 0), 3)
                 output = cv2.line(output, (max_x, max_y), (max_x, min_y), (255, 0, 0), 3)
+                
             
             # If corners of contour are sufficiently different to one another, it probably has a unique shape
             #     -> draw contour as it is
@@ -244,6 +245,9 @@ def extract_buildings(labeled_img: np.ndarray, tresh=120, min_building_area=1500
     # Draw unique building contours, in red,  onto chosen background
     if np.any(unique_contours):
         output = cv2.drawContours(output, unique_contours, -1, (255, 0, 0), 3)
+    
+    if output_type == 'mask':
+        output = np.any(output, axis=2)
     
     return output
 
