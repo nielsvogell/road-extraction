@@ -17,7 +17,7 @@ def main():
     
     labeled_img, label_colors = segment(img_rgb)
     
-    detected_buildings = building_detection(labeled_img, 120, 1500, 60, output_type="original", original=img_rgb)
+    detected_buildings = extract_buildings(labeled_img, 120, 1500, 60, output_type="original", original=img_rgb)
     
     plt.imshow(detected_buildings)
     print('Done!')
@@ -119,8 +119,8 @@ def process_labeled_img(labeled_img: np.ndarray, label_colors=None, output_type=
     return output, color_eval_img
 
 
-def building_detection(labeled_img: np.ndarray, tresh, min_building_area, nb_buildings=None, label_colors=None,
-                       output_type='mask', original: np.ndarray = None):
+def extract_buildings(labeled_img: np.ndarray, tresh, min_building_area, nb_buildings=None, label_colors=None,
+                      output_type='mask', original: np.ndarray = None):
     """
     Detects contours of buildings in the image and display an accuracy metric
     @Author : Tanguy Gerniers (W21)
