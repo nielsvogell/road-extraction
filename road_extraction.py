@@ -36,12 +36,12 @@ def main():
     plt.imshow(roads_thinned, cmap='gray')
     
     
-def extract_roads(labeled_img):
+def extract_roads(labeled_img, n_largest=1):
     labels = segmentation.get_labels()
     road_mask = np.zeros_like(labeled_img).astype(np.uint8)
     road_mask[np.where(labeled_img == labels['road'])] = 255
     
-    road_mask_final = process_road_mask(labeled_img)
+    road_mask_final = process_road_mask(labeled_img, n_largest=n_largest)
     # plt.imshow(road_mask_final, cmap='gray')
     
     # Thinning process
