@@ -2,13 +2,11 @@
 import cv2
 import numpy as np
 import sys
+from segmentation import segment
 if 'matplotlib' not in sys.modules:
     from matplotlib import use
     use('TkAgg')
 from matplotlib import pyplot as plt
-
-import segmentation
-from segmentation import segment
 
 
 def main():
@@ -17,43 +15,11 @@ def main():
     
     labeled_img, label_colors = segment(img_rgb)
     
-    detected_buildings = extract_buildings(labeled_img, 120, 1500, 60, output_type="original", original=img_rgb)
+    detected_buildings = extract_buildings(labeled_img, label_colors, 120, 1500, 60,
+                                           output_type="original", original=img_rgb)
     
     plt.imshow(detected_buildings)
     print('Done!')
-
-# Deprecated?
-# def morph2(img, kernel):
-#     (h, w) = img.shape[:2]  # get image dimensions
-#
-#     for i in range(10):
-#         Im_d = cv2.dilate(img, kernel, iterations=1)  # dilate
-#         Im_e = cv2.erode(img, kernel, iterations=1)  # erode
-#         Im_h = 0.5 * (Im_d + Im_e)  # combination of dilate and erode
-#
-#         # if original pixel is darker than dilated and eroded image, keep dilated image else the eroded image
-#         img = np.where(img > Im_h, Im_d, Im_e)
-#
-#     return img
-
-# Deprecated?
-# def morph(img, kernel):
-#     (h, w) = img.shape[:2]  # get image dimensions
-#
-#     for i in range(10):
-#         Im_d = cv2.dilate(img, kernel, iterations=1)  # dilate
-#         Im_e = cv2.erode(img, kernel, iterations=1)  # erode
-#         Im_h = 0.5 * (Im_d + Im_e)  # combination of dilate and erode
-#
-#         for y in range(0, h):
-#             for x in range(0, w):
-#                 # threshold the pixel
-#                 if img[y, x] > Im_h[y, x]:
-#                     img[y, x] = Im_d[y, x]  # if original pixel is darker than dilated and eroded pixel, dilate pixel
-#                 else:
-#                     img[y, x] = Im_e[y, x]  # if original pixel is lighter than dilated and eroded pixel, erode pixel
-#
-#     return img
 
 
 def process_labeled_img(cluster_img: np.ndarray, cluster_labels, cluster_colors=None, output_type='mask', original=None):
@@ -123,25 +89,20 @@ def process_labeled_img(cluster_img: np.ndarray, cluster_labels, cluster_colors=
     return output, color_eval_img
 
 
-def extract_buildings(cluster_img: np.ndarray, cluster_labels: np.ndarray,
+def extract_buildings(cluster_img: np.ndarray, cluster_labels: dict,
                       thresh=120, min_building_area=1500, nb_buildings=None, cluster_colors=None,
                       output_type='mask', original: np.ndarray = None):
     """
-    Detects contours of buildings in the image and display an accuracy metric
-    @Author : Tanguy Gerniers (W21)
-    @Args :
-      path (str) : The file location of the image.
-      output_type(str) :  "mask" : no background
-                          "original" : original image as background
-                          "label_color" : 2 clusters (road network in blue, everything else in green) as background
-      tresh (int) : Determines whether contours should follow contour edges (0) or bound them within smoother
-                    rectangular boxes where possible (120)
-      min_building_area(int) : minimum area a building must be to be considered (recommended : 500-1500, depending on
-                               height from which image is taken)
-      nb_buildings(int) : number of buildings effectively in the image (optional)
-
-    @Returns :      output (image) : background of choice with contours of detected buildings in red applied on top as a
-                                     mask
+    
+    :param cluster_img: Labeled image returned by the segmentation algorithm
+    :param cluster_labels: dictionary containing the labels associated with roads, buildings and background
+    :param thresh: threshold for corner matching
+    :param min_building_area: min area in pixels required for a contour to be considered a building
+    :param nb_buildings: expected number of buildings (only internal usage)
+    :param cluster_colors: colors assigned to each label returned by the segmentation
+    :param output_type: choice of 'mask' (empty canvas), 'original' (input image), 'label_color' (segmentation result)
+    :param original: input image to draw on
+    :return:
     """
     output, color_img = process_labeled_img(cluster_img, cluster_labels,
                                             cluster_colors=cluster_colors, output_type=output_type,
@@ -156,18 +117,30 @@ def extract_buildings(cluster_img: np.ndarray, cluster_labels: np.ndarray,
     output, nr_buildings = extract_buildings_with_label(building_mask, output.copy(), color_img,
                                                         thresh=thresh,
                                                         min_building_area=min_building_area,
-                                                        nb_buildings=nb_buildings,
-                                                        label_colors=cluster_colors,
-                                                        output_type=output_type)
+                                                        nb_buildings=nb_buildings)
 
     return output
     
-    
+
 def extract_buildings_with_label(building_mask: np.ndarray, output: np.ndarray,
                                  color_img: np.ndarray,
-                                 thresh: int = 120, min_building_area=1500, nb_buildings=None, label_colors=None,
-                                 output_type='mask'):
-    
+                                 thresh: int = 120, min_building_area=1500, nb_buildings=None):
+    """
+    Detects contours of buildings in the image and display an accuracy metric
+    @Author : Tanguy Gerniers (W21)
+    @Args :
+      building_mask (np.ndarray) : Mask of segmented image showing only labels associated with buildings
+      output (np.ndarray) : The prepared output array to draw on.
+      color_img (np.ndarray) : Segmentation result with median color for each label associated with buildings
+      tresh (int) : Determines whether contours should follow contour edges (0) or bound them within smoother
+                    rectangular boxes where possible (120)
+      min_building_area(int) : minimum area a building must be to be considered (recommended : 500-1500, depending on
+                               height from which image is taken)
+      nb_buildings(int) : number of buildings effectively in the image (optional)
+
+    @Returns :      output (image) : background of choice with contours of detected buildings in red applied on top as a
+                                     mask
+    """
     # Blur image to make shapes stand out, remove noise & unnecessary details
     buildings_processed = cv2.bilateralFilter(building_mask.copy(), 12, 20, 500)
     
