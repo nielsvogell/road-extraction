@@ -27,6 +27,15 @@ Further extensions
 
 
 ## Segmentation
+The segmentation (segment) function divides the image into 5 clusters by color using the gaussian mixture clustering algorithm.<br>
+Based on the average color of each cluster, it gets assigned a label: "road", "building", "background".<br>
+The mask for the "building" label can be used for the Building Extraction, and the mask for the "road" label for the Road Extraction.
+* run show_color_evaluation() to see segmentation result
+* run test_segment() to see masks of labels
+
+### Possible improvements
+* faster clustering algorithm
+* finding optimal number of clusters for gaussian mixture (using 5 right now)
 
 ## Building extraction
 The building_detection function allows us to locate and highlight buildings on images. It follows these steps 
