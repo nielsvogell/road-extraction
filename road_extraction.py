@@ -35,7 +35,8 @@ def main():
     # Output and save figure
     plt.imshow(img_rgb, cmap='gray')
     plt.axis('off')
-    plt.savefig('out/example_lit_out.png')
+    plt.savefig('out/example_lit_roads_out.png', dpi=300)
+    print('Saved output file to', ''.join(['out/', 'example_lit', '_roads_out.png']), '\n')
     
     
 def extract_roads(cluster_img, cluster_labels, n_largest=1):
