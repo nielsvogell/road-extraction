@@ -13,24 +13,42 @@ from importlib import reload
 
 
 def main():
-    image_name = 'test01'
-    img_rgb = cv2.cvtColor(cv2.imread(''.join(['data/', image_name, '.png'])), cv2.COLOR_RGB2BGR)
+    print('Type the name of the input file.\n data/...')
+    file_name = input()
+    if file_name == '':
+        file_name = 'test01.png'
+    image_name, extension = file_name.split('.')
+    
+    # Read image as RGB
+    img_rgb = cv2.cvtColor(cv2.imread(''.join(['data/', file_name])), cv2.COLOR_RGB2BGR)
 
+    # Get the segmented image from the segment module
     cluster_img, cluster_labels, cluster_colors = segment(img_rgb)
+    
+    # Create colored image of segmentation result for later plotting
     (h, w) = cluster_img.shape
     color_eval_img = np.zeros((h, w, 3), dtype=np.uint8)
     if cluster_colors is not None:
         for lbl, color in cluster_colors.items():
             color_eval_img[np.where(cluster_img == lbl)] = color.astype(np.uint8)
-            
+    
+    # Extract the roads using the road_extraction module
     roads = extract_roads(cluster_img, cluster_labels, n_largest=7)
+    
+    # Extract the buildings using the building extraction module
     buildings = extract_buildings(cluster_img, cluster_labels, cluster_colors=cluster_colors, output_type='mask')
     
+    # Create a final image from the original image, with buildings and roads drawn on top
     img_out = img_rgb.copy()
     img_out[np.where(buildings > 0)] = np.array([250, 120, 120], dtype=np.uint8)
     img_out[np.where(roads > 0)] = np.array([50, 50, 250], dtype=np.uint8)
-
-    grid = ImageGrid(plt.figure(1, figsize=(10, 10)), 111, nrows_ncols=(2, 4), axes_pad=0.1)
+    
+    # Output
+    # - Original image
+    # - segmented image
+    # - detected roads
+    # - detected buildings
+    # - overlay of buildings and roads on input image
     fig = plt.figure(figsize=(10, 10), tight_layout=True)
 
     gs = fig.add_gridspec(4, 2)
@@ -56,8 +74,7 @@ def main():
     ax5.imshow(img_out)
 
     plt.savefig(''.join(['out/', image_name, '_out.png']), dpi=300)
-    
-    print('Done')
+    print('Saved output file to', ''.join(['out/', image_name, '_out.png']), '\n')
     
     
 # Press the green button in the gutter to run the script.
