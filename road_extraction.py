@@ -1,13 +1,13 @@
 import numpy as np
 import cv2
-import pickle
+# import pickle  # for alternative approach to load GaussianMixtureModel from file, rather than recalculate it
+# from importlib import reload  # for debuggin purposes
 import sys
 if 'matplotlib' not in sys.modules:
     from matplotlib import use
-    use('TkAgg')
+    use('TkAgg')  # The standard QtAgg causes problems on some machines
 import segmentation
 from matplotlib import pyplot as plt
-from importlib import reload
 
 # for debugging
 # if False:
@@ -20,62 +20,56 @@ from importlib import reload
 
 
 def main():
-    img_rgb = cv2.cvtColor(cv2.imread('data/exp_lit.png'), cv2.COLOR_BGR2RGB)
-    label_img, _ = segmentation.segment(img_rgb, nr_clusters=5)
+    # Load example image from Jin et al. (2012) for comparison
+    img_rgb = cv2.cvtColor(cv2.imread('data/example_lit.png'), cv2.COLOR_BGR2RGB)
     
-    # segmentation_obj = (label_img, final_label)
-    # label_file = open('segmented.pck', 'ab')
-    # pickle.dump(segmentation_obj, label_file)
-    # label_file.close()
-    # label_file = open('segmented.pck', 'rb')
-    # segmentation_obj = pickle.load(label_file)
-    # (label_img, final_label) = segmentation_obj
-    # label_file.close()
+    # Get the segmented labels from the input image
+    cluster_img, cluster_labels, _ = segmentation.segment(img_rgb, nr_clusters=5)
     
-    roads_thinned = extract_roads(label_img)
-    plt.imshow(roads_thinned, cmap='gray')
+    # Extract road network
+    roads_thinned = extract_roads(cluster_img, cluster_labels)
+    
+    # Draw road network on image
+    img_rgb[np.where(roads_thinned > 0)] = np.array([50, 50, 250], dtype=np.uint8)
+    
+    # Output and save figure
+    plt.imshow(img_rgb, cmap='gray')
+    plt.axis('off')
+    plt.savefig('out/example_lit_out.png')
     
     
 def extract_roads(cluster_img, cluster_labels, n_largest=1):
+    """
+    Extracts the road network from a segmented image
+    :param cluster_img: 2d array with labels of each cluster at each pixel
+    :param cluster_labels: dict containing the labels belonging roads, buildings and background
+    :param n_largest: number of largest connected components considered for the road network
+    :return: 2d array with ones where the thinned road network is and zeros else
+    """
+    # Create a mask of all clusters labeled 'road'
     road_mask = np.zeros_like(cluster_img).astype(np.uint8)
     for lbl in cluster_labels['road']:
         road_mask[np.where(cluster_img == lbl)] = 255
     
+    # Remove small components, fill holes in the mask
     road_mask_final = process_road_mask(road_mask, n_largest=n_largest)
     # plt.imshow(road_mask_final, cmap='gray')
     
     # Thinning process
-    roads_thinned = get_skeleton(road_mask_final)
-    # plt.imshow(roads_thinned, cmap='gray')
-
-    # roads_thinned_2 = thinning_wang(roads_thinned)
-    # plt.imshow(roads_thinned_2, cmap='gray')
+    # Get a skeleton representation of the road network
+    road_network = get_skeleton(road_mask_final)
+    # plt.imshow(road_network, cmap='gray')
     
-    # # Find intersection points
-    # # Scan for points with at least 3 neighbors
-    # ker_eight_nb = np.ones((3, 3), dtype=np.uint8)
-    # ker_eight_nb[1, 1] = 0
-    # ker_four_nb = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
-    # neighbors_eight = cv2.filter2D(roads_thinned, 0, kernel=ker_eight_nb)
-    # neighbors_four = cv2.filter2D(roads_thinned, 0, kernel=ker_four_nb)
-    # c = neighbors_four.astype(np.int32)
-    # ker_top_right = cv2.filter2D(roads_thinned, 0, kernel=np.array([[0, 1, 0], [0, 0, 1], [0, 0, 0]]))
-    # ker_top_right_cor = cv2.erode(roads_thinned, kernel=np.array([[0, 0, 1], [0, 1, 0], [0, 0, 0]], dtype=np.uint8))
-    # plt.imshow(ker_top_right_cor, cmap='gray')
-    # c += np.where(np.logical_and(ker_top_right_cor, ker_top_right), 1, 0).astype(np.int32)
-    # ker_bottom_right = cv2.filter2D(roads_thinned, 0, kernel=np.array([[0, 0, 0], [0, 1, 0], [0, 1, 0]])) == 0
-    # ker_bottom_right_cor = cv2.erode(roads_thinned, kernel=np.array([[0, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=np.uint8))
-    # c += np.where(np.logical_and(ker_bottom_right_cor, ker_bottom_right), 1, 0).astype(np.int32)
-    # ker_bottom_left = cv2.filter2D(roads_thinned, 0, kernel=np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0]])) == 0
-    # ker_bottom_left_cor = cv2.erode(roads_thinned, kernel=np.array([[0, 0, 0], [0, 1, 0], [1, 0, 0]], dtype=np.uint8))
-    # c += np.where(np.logical_and(ker_bottom_right_cor, ker_bottom_right), 1, 0).astype(np.int32)
-    # ker_top_left = cv2.filter2D(roads_thinned, 0, kernel=np.array([[0, 1, 0], [1, 0, 0], [0, 0, 0]])) == 0
-    # ker_top_left_cor = cv2.erode(roads_thinned, kernel=np.array([[1, 0, 0], [0, 1, 0], [0, 0, 0]], dtype=np.uint8))
-    # c += np.where(np.logical_and(ker_bottom_right_cor, ker_bottom_right), 1, 0).astype(np.int32)
-    #
-    # plt.clf()
-    # plt.imshow(c > 3, cmap='gray')
-    return roads_thinned
+    # Improve the thinning with an application of the wang89 algorithm
+    # The algorithm is not yet fully correctly implemented due to ambiguities in the paper
+    # roads_thinned_wang = thinning_wang(road_network)
+    # plt.imshow(roads_thinned_wang, cmap='gray')
+    
+    # Find intersection points
+    # Does currently not work properly because the skeleton is not thin enough
+    # intersection_points = get_intersection_points(road_network)
+    
+    return road_network
 
 
 def keep_n_largest_components(img_labeled, n_largest=1):
@@ -86,10 +80,12 @@ def keep_n_largest_components(img_labeled, n_largest=1):
     # take the n_largest largest components to continue
     if n_largest > no_components:
         n_largest = no_components
-    if no_components == 1:
+    if no_components == 1:  # prevents an error in the slicing that occurs if only one component is detected
         n_largest_components = [0]
     else:
+        # np.argpartition splits the components in such a way that the n largest components occur at the end (unsorted)
         n_largest_components = np.argpartition(component_size.flatten(), -(n_largest + 1))[-(n_largest + 1):]
+        # Assuming that the background (non-road) component fills the larges area, remove the largest component
         n_largest_components = np.delete(n_largest_components, np.argmax(component_size[n_largest_components]))
     
     # Create mask for remaining components
@@ -101,7 +97,7 @@ def keep_n_largest_components(img_labeled, n_largest=1):
 
 
 def process_road_mask(img_labeled, n_largest=1):
-    # Get the largest connected components
+    # Get the n largest connected components
     roads_processed = keep_n_largest_components(img_labeled, n_largest=n_largest)
     
     # use morph close to close holes and remove noise
@@ -123,22 +119,26 @@ def process_road_mask(img_labeled, n_largest=1):
 
 
 def get_skeleton(mask):
+    # Calculate number of neighbors with this kernel
     # 111
     # 101
     # 111
     ker_nb = np.ones((3, 3), dtype=np.uint8)
     ker_nb[1, 1] = 0
     
-    removed_points = 1
+    removed_points = 1  # Just for initializing
+    
+    # While there are points to be removed, remove suitable border pixels
     while removed_points > 0:
-        # Take the inverse mask
+        # Get the border
+        # 1. Take the inverse mask
         mask_inv = np.ones_like(mask, dtype=np.uint8)
         mask_inv[np.where(mask == 1)] = 0
         
-        # grow the inverse mask one pixel into the road-occupied space
+        # 2. Grow the inverse mask one pixel into the road-occupied space
         mask_inv = cv2.dilate(mask_inv, cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3)), iterations=1)
         
-        # The overlap between both masks is the border
+        # 3. The overlap between both masks is the border (contour)
         border = np.logical_and(mask_inv, mask)
         
         # Count the number of neighbors of each border pixel
@@ -150,10 +150,14 @@ def get_skeleton(mask):
         # - a pixel can be removed if it has exactly two border neighbors, but more than two road neighbors
         border_remove = border.copy()
         border_remove[np.where(np.logical_or(border_filtered != 2, mask_filtered <= border_filtered))] = 0
+        
+        # Set removed border pixels to 0
         mask_thinned = mask.copy()
         mask_thinned[np.where(border_remove == 1)] = 0
         # plt.clf()
         # plt.imshow(mask_thinned, cmap='gray')
+        
+        # Calculate the number of removed points
         removed_points = np.sum(np.logical_and(mask, mask_thinned == 0))
         mask = mask_thinned.copy()
         # plt.clf()
@@ -164,6 +168,7 @@ def get_skeleton(mask):
 
 
 def thinning_wang(roads_thinned):
+    # Algorithm as described in wang89
     roads_out = roads_thinned.copy()
     removed_points = 1
     while removed_points > 0:
@@ -209,6 +214,9 @@ def thinning_wang(roads_thinned):
             g = (g + 1) % 2
             removed_points += 1
     return roads_out
+    
+    # Vectorized version of wang89:
+    # Unfortunately one process was not easy to vectorize, so this serves as reminder for a potential improvement
     # # ker_nb = np.ones((3, 3), dtype=np.uint8)
     # # ker_nb[1, 1] = 0
     # number_of_neighbors = cv2.filter2D(contour, 0, kernel=ker_nb)  # includes neighbors of non-contour pixels
@@ -248,6 +256,37 @@ def thinning_wang(roads_thinned):
     #
     # roads_thinned[to_be_removed] = 0
     # plt.imshow(roads_thinned, cmap='gray')
+
+
+# Not used
+def get_intersection_points(roads_thinned):
+    # Get intersection points as described in jin12
+    
+    # Scan for points with at least 3 neighbors
+    ker_eight_nb = np.ones((3, 3), dtype=np.uint8)
+    ker_eight_nb[1, 1] = 0
+    ker_four_nb = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+    # neighbors_eight = cv2.filter2D(roads_thinned, 0, kernel=ker_eight_nb)
+    neighbors_four = cv2.filter2D(roads_thinned, 0, kernel=ker_four_nb)
+    c = neighbors_four.astype(np.int32)
+    ker_top_right = cv2.filter2D(roads_thinned, 0, kernel=np.array([[0, 1, 0], [0, 0, 1], [0, 0, 0]]))
+    ker_top_right_cor = cv2.erode(roads_thinned, kernel=np.array([[0, 0, 1], [0, 1, 0], [0, 0, 0]], dtype=np.uint8))
+    plt.imshow(ker_top_right_cor, cmap='gray')
+    c += np.where(np.logical_and(ker_top_right_cor, ker_top_right), 1, 0).astype(np.int32)
+    ker_bottom_right = cv2.filter2D(roads_thinned, 0, kernel=np.array([[0, 0, 0], [0, 1, 0], [0, 1, 0]])) == 0
+    ker_bottom_right_cor = cv2.erode(roads_thinned, kernel=np.array([[0, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=np.uint8))
+    c += np.where(np.logical_and(ker_bottom_right_cor, ker_bottom_right), 1, 0).astype(np.int32)
+    ker_bottom_left = cv2.filter2D(roads_thinned, 0, kernel=np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0]])) == 0
+    ker_bottom_left_cor = cv2.erode(roads_thinned, kernel=np.array([[0, 0, 0], [0, 1, 0], [1, 0, 0]], dtype=np.uint8))
+    c += np.where(np.logical_and(ker_bottom_left_cor, ker_bottom_left), 1, 0).astype(np.int32)
+    ker_top_left = cv2.filter2D(roads_thinned, 0, kernel=np.array([[0, 1, 0], [1, 0, 0], [0, 0, 0]])) == 0
+    ker_top_left_cor = cv2.erode(roads_thinned, kernel=np.array([[1, 0, 0], [0, 1, 0], [0, 0, 0]], dtype=np.uint8))
+    c += np.where(np.logical_and(ker_top_left_cor, ker_top_left), 1, 0).astype(np.int32)
+
+    plt.clf()
+    plt.imshow(c > 3, cmap='gray')
+
+    return np.where(c > 3, 1, 0).astype(np.uint8)
 
 
 if __name__ == '__main__':
