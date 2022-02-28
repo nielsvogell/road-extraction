@@ -10,16 +10,26 @@ from matplotlib import pyplot as plt
 
 
 def main():
-    image_path = 'data/munich.png'
-    img_rgb = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
+    print('Type the name of the input file.\n data/[munich.png]')
+    file_name = input()
+    if file_name == '':
+        file_name = 'munich.png'
+    image_name, extension = file_name.split('.')
     
-    labeled_img, label_colors = segment(img_rgb)
+    # Read image as RGB
+    # Default: Load an example image from Google Maps
+    img_rgb = cv2.cvtColor(cv2.imread(''.join(['data/', file_name])), cv2.COLOR_RGB2BGR)
     
-    detected_buildings = extract_buildings(labeled_img, label_colors, 120, 1500, 60,
+    cluster_img, cluster_labels, cluster_colors = segment(img_rgb)
+    
+    detected_buildings = extract_buildings(cluster_img, cluster_labels, 120, 1500, 60,
+                                           cluster_colors=cluster_colors,
                                            output_type="original", original=img_rgb)
     
     plt.imshow(detected_buildings)
-    print('Done!')
+    plt.axis('off')
+    plt.savefig(''.join(['out/', image_name, '_buildings_out.png']), dpi=300)
+    print('Saved output file to', ''.join(['out/', image_name, '_buildings_out.png']), '\n')
 
 
 def process_labeled_img(cluster_img: np.ndarray, cluster_labels, cluster_colors=None, output_type='mask', original=None):

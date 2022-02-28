@@ -20,8 +20,15 @@ from matplotlib import pyplot as plt
 
 
 def main():
-    # Load example image from Jin et al. (2012) for comparison
-    img_rgb = cv2.cvtColor(cv2.imread('data/example_lit.png'), cv2.COLOR_BGR2RGB)
+    print('Type the name of the input file.\n data/[example_lit.png]')
+    file_name = input()
+    if file_name == '':
+        file_name = 'example_lit.png'
+    image_name, extension = file_name.split('.')
+    
+    # Read image as RGB
+    # Default: Load example image from Jin et al. (2012) for comparison
+    img_rgb = cv2.cvtColor(cv2.imread(''.join(['data/', file_name])), cv2.COLOR_RGB2BGR)
     
     # Get the segmented labels from the input image
     cluster_img, cluster_labels, _ = segmentation.segment(img_rgb, nr_clusters=5)
@@ -35,8 +42,8 @@ def main():
     # Output and save figure
     plt.imshow(img_rgb, cmap='gray')
     plt.axis('off')
-    plt.savefig('out/example_lit_roads_out.png', dpi=300)
-    print('Saved output file to', ''.join(['out/', 'example_lit', '_roads_out.png']), '\n')
+    plt.savefig(''.join(['out/', image_name, '_roads_out.png']), dpi=300)
+    print('Saved output file to', ''.join(['out/', image_name, '_roads_out.png']), '\n')
     
     
 def extract_roads(cluster_img, cluster_labels, n_largest=1):

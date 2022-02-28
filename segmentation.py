@@ -9,13 +9,18 @@ from matplotlib import pyplot as plt
 
 
 def main():
-    # show_color_evaluation("data/munich.png")
-    test_segment("data/test01.png")
+    test_segment()
 
 
-def test_segment(img_path):
+def test_segment():
+    print('Type the name of the input file.\n data/[munich.png]')
+    file_name = input()
+    if file_name == '':
+        file_name = 'munich.png'
+    image_name, extension = file_name.split('.')
+    
     # read image
-    img = cv2.imread(img_path)
+    img = cv2.imread(''.join(['data/', file_name]))
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
     # SEGMENT
@@ -37,7 +42,8 @@ def test_segment(img_path):
         plt.title(map_type, fontsize=18)
 
     plt.tight_layout()
-    plt.show()
+    plt.savefig(''.join(['out/', image_name, '_segmentation_out.png']), dpi=300)
+    print('Saved output file to', ''.join(['out/', image_name, '_segmentation_out.png']), '\n')
 
 
 def get_labels(label='all'):
