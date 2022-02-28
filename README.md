@@ -1,6 +1,6 @@
 # Road extraction from satellite images
 
-**Intent** This is a class project for a course at [Klagenfurt University](https://www.aau.at).
+**Disclaimer:** This is a class project for a course at [Klagenfurt University](https://www.aau.at).
 
 ## Project goal
 The project aims to extract the roads from a satellite image of a rural
@@ -9,22 +9,23 @@ than AI approaches.
 
 ## Usage
 Currently all functions assume the image files to be contained in a subdirectory called "data".
+1. Clone the repository to a local directory and inside
+    1. Create an empty directory called `data`
+    1. Create an empty directory called `out`
+2. Place a sample image in the data folder
+3. Execute main.py
+4. Type in the file name of the image in the data directory or leave empty for default
 
-## TODO
-* Write a callable segmentation function that returns the clustered image
-* Write a post-processing function to extract the road network
-* Write a function that combines both processes
+This outputs an image showing the three stages and the final result to the output directory.
 
-Further extensions
-* Speed up the clustering process
-* Refine the clustering/segmentation
-* Make the output more visually appealing
+The same approach works on each of the three modules `segmentation`, `road_extraction`, and `building_extraction`.
 
-## Track record
+## Contribution
 
-* (Jana) Wrote inital segmentation tool based on Gaussian mixtures
-* (Arke) Some speed optimizations for the segmetnation process
-
+* (Jana) Segmentation based on Gaussian mixtures
+* (Tanguy) Building extraction based on contour detection enhanced with morphological preprocessing
+* (Arke) Road network extraction using a thinning algorithm inspired by[^wang1989]. Also combination of the three parts (interfaces, adjustments, ...)
+* (all) Debugging and optimizing.
 
 ## Segmentation
 The segmentation (segment) function divides the image into 5 clusters by color using the gaussian mixture clustering algorithm.<br>
@@ -109,6 +110,18 @@ To further improve our approach, we suggest a look into the following ideas:
 2. For the same reason, roads do not zigzag randomly. Once intersection points can be extracted, one could straighten
    roads by drawing a smooth curve between the intersection points, using the road mask as a constraint on the amount
    of sideways deviation.
+
+## TODO
+* Improve thinning algorithm to reduce thickness to one pixel.
+* Extract intersection points from road network
+* Remove dangling lines from road network
+* Improve detection of rotated buildings
+* Improve segmentation to better detect buildings with grayish or greenish colors.
+
+Further extensions
+* Speed up the clustering process
+* Refine the clustering/segmentation
+* Make the output more visually appealing
 
 ## References
 [^wang1989]: 
